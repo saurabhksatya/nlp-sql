@@ -31,6 +31,10 @@ body {
   color: var(--foreground);
 }
 
+button {
+  cursor: pointer;
+}
+
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
