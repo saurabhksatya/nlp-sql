@@ -1,33 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NL→SQL Visualizer
+
+An interactive web application that teaches and demonstrates **Natural Language to SQL**
+through visualization, simulation, and step-by-step explanations.
+
+## Features
+
+- **Natural language input** → rule-based translation to SQL with confidence score,
+  matched rules, and plain-English interpretation.
+- **Direct SQL editor** with validation messages for unsupported syntax.
+- **Step-by-step execution pipeline** — the query runs as an explicit relational-algebra
+  plan (`FROM → JOIN → WHERE → GROUP BY → HAVING → AGGREGATE/SELECT → ORDER BY → LIMIT`),
+  each stage showing its intermediate rows, row counts, and complexity.
+- **Animated playback** of the pipeline.
+- **Explanation panel** — per-stage theory notes + relational algebra notation.
+- **Schema / ER tab** — full schema with PK/FK markers and Mermaid ER source.
+- **Theory tab** — definitions, use cases, limitations, algorithms & complexities, references.
+- **History** (persisted in localStorage), **CSV export**, and **Markdown report export**.
+- **Dark/light mode**, responsive three-panel dashboard, accessible labels.
+
+## Tech Stack
+
+- Next.js (App Router) + React 19 + TypeScript
+- Tailwind CSS v4
+- Custom in-browser mini SQL engine (`src/lib/sqlEngine.ts`) — no backend needed;
+  all operations run client-side in well under 2 s.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Sample Inputs & Expected Outputs
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| #   | Question                                          | Generated SQL                                                             | Expected output                      |
+| --- | ------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------ |
+| 1   | How many customers are there?                     | `SELECT COUNT(*) FROM customers;`                                         | 6                                    |
+| 2   | Show products with price above 5000               | `SELECT name, category, price FROM products WHERE price > 5000;`          | Laptop Pro, Office Chair, Study Desk |
+| 3   | Average total amount per customer in orders       | `SELECT customer_id, AVG(total_amount) FROM orders GROUP BY customer_id;` | one row per customer_id              |
+| 4   | List customers in Mumbai                          | `SELECT name, city, signup_year FROM customers WHERE city = 'Mumbai';`    | Asha Verma, Meera Nair               |
+| 5   | Total quantity ordered per product in order_items | `SELECT product_id, SUM(quantity) FROM order_items GROUP BY product_id;`  | one row per product_id               |
+| 6   | Top 3 highest priced products sorted by price     | `... ORDER BY price DESC LIMIT 3;`                                        | Laptop Pro, Study Desk, Office Chair |
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+  app/page.tsx        # Three-panel dashboard UI
+  lib/schema.ts       # Sample e-commerce database + ER diagram generator
+  lib/sqlEngine.ts    # Mini SQL parser + step-recording execution engine
+  lib/nlToSql.ts      # Rule-based natural-language → SQL translator
+  lib/examples.ts     # Sample inputs with expected outputs
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Algorithms & Complexity
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Operation          | Algorithm             | Complexity           |
+| ------------------ | --------------------- | -------------------- |
+| NL→SQL translation | Rule/pattern matching | O(L) question length |
+| Join               | Nested-loop join      | O(n·m)               |
+| Filter / project   | Linear scan           | O(n)                 |
+| Grouping           | Hash aggregation      | O(n) expected        |
+| Sort               | Comparison sort       | O(n log n)           |
+
+## Supported SQL Subset
+
+Single-table or INNER/LEFT JOINed SELECT queries with:
+one WHERE condition, GROUP BY (single column), HAVING `AGG(*) op N`,
+ORDER BY (single expression), LIMIT. Anything else produces a clear validation message.
+
+## AI Usage Log
+
+This application was generated and refactored with GitHub Copilot (Ox Alpha model):
+scaffolding review, mini SQL engine design, rule-based NL translator, dashboard UI,
+and documentation. Prompts used: the assignment specification plus iterative
+"build X module" requests; every generated file was type-checked and error-fixed
+in-editor.
+
+## References
+
+- Silberschatz, Korth & Sudarshan — _Database System Concepts_, 7th ed.
+- Ramakrishnan & Gehrke — _Database Management Systems_.
+- Yu et al., "Spider: A Large-Scale Human-Labeled Dataset for Complex Text-to-SQL Tasks", EMNLP 2018.
+- ISO/IEC 9075 SQL standard.
 
 ## Deploy on Vercel
 
