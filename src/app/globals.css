@@ -35,6 +35,10 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+}
+
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
