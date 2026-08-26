@@ -159,12 +159,7 @@ export default function Home() {
         className="flex items-center justify-between px-4 py-3 border-b"
         style={{ borderColor: "var(--border)" }}
       >
-        <h1 className="text-lg font-bold">
-          🗣️→🗄️ NL→SQL Visualizer
-          <span className="ml-2 text-xs font-normal opacity-60">
-            Natural Language to SQL, step by step
-          </span>
-        </h1>
+        <h1 className="text-lg font-bold">NL to SQL</h1>
         <button
           onClick={() => setDark((d) => !d)}
           className="px-3 py-1.5 rounded-lg text-sm panel hover:opacity-80"
@@ -353,7 +348,7 @@ export default function Home() {
 
               {current && (
                 <div className="panel p-4">
-                  <h3 className="font-semibold text-sm mb-1">
+                  <h3 className="font-semibold text-base mb-1">
                     Step {activeStep + 1}/{steps.length}: {current.title}
                   </h3>
                   <p className="text-xs opacity-70 mb-3">{current.detail}</p>
@@ -364,7 +359,7 @@ export default function Home() {
               {!error && finalRows.length > 0 && (
                 <div className="panel p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-sm">
+                    <h3 className="font-semibold text-base">
                       Final Result ({finalRows.length} row
                       {finalRows.length !== 1 && "s"})
                     </h3>
@@ -395,10 +390,10 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {SCHEMA.map((t) => (
                   <div key={t.name} className="panel p-3">
-                    <h3 className="font-mono font-semibold text-sm mb-1">
+                    <h3 className="font-mono font-semibold text-base mb-1">
                       {t.name}
                     </h3>
-                    <table className="text-xs w-full">
+                    <table className="text-sm w-full">
                       <tbody>
                         {t.columns.map((c) => (
                           <tr key={c.name}>
@@ -424,14 +419,18 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-              <details className="mt-4">
-                <summary className="cursor-pointer text-sm font-semibold">
-                  Mermaid ER source
-                </summary>
-                <pre className="text-xs mt-2 overflow-x-auto panel p-2 whitespace-pre-wrap">
-                  {mermaidSrc}
-                </pre>
-              </details>
+              <div className="mt-4">
+                <h3 className="font-semibold text-base mb-2">ER diagram</h3>
+                <MermaidDiagram source={mermaidSrc} dark={dark} />
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-sm font-semibold">
+                    Mermaid ER source
+                  </summary>
+                  <pre className="text-xs mt-2 overflow-x-auto panel p-2 whitespace-pre-wrap">
+                    {mermaidSrc}
+                  </pre>
+                </details>
+              </div>
             </div>
           )}
 
@@ -493,12 +492,45 @@ export default function Home() {
   );
 }
 
+function MermaidDiagram({ source, dark }: { source: string; dark: boolean }) {
+  const diagramRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void import("mermaid").then(({ default: mermaid }) => {
+      if (cancelled || !diagramRef.current) return;
+      mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: "strict",
+        theme: dark ? "dark" : "default",
+      });
+      return mermaid.render("nl-sql-er-diagram", source).then(({ svg }) => {
+        if (cancelled || !diagramRef.current) return;
+        diagramRef.current.innerHTML = svg;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [source, dark]);
+
+  return (
+    <div
+      ref={diagramRef}
+      className="panel min-h-40 overflow-x-auto p-3 [&_svg]:mx-auto [&_svg]:max-w-full"
+      aria-label="Entity relationship diagram"
+    />
+  );
+}
+
 function StepTable({ step }: { step: PipelineStep }) {
   if (!step.rows.length)
     return <p className="text-xs opacity-50 italic">No rows at this stage.</p>;
   return (
     <div className="overflow-x-auto max-h-56">
-      <table className="text-xs w-full border-collapse">
+      <table className="text-sm w-full border-collapse">
         <thead>
           <tr>
             {step.columns.map((c) => (
@@ -540,7 +572,7 @@ function StepTable({ step }: { step: PipelineStep }) {
 function ResultTable({ rows, cols }: { rows: Row[]; cols: string[] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="text-xs w-full border-collapse">
+      <table className="text-sm w-full border-collapse">
         <thead>
           <tr style={{ background: "var(--background)" }}>
             {cols.map((c) => (
