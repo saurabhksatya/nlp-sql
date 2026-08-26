@@ -2,7 +2,7 @@
 // Deterministic pattern matching keeps it fast (<2s), explainable and offline —
 // a deliberate teaching choice: students can read every rule.
 
-import { SCHEMA } from "./schema";
+import { SCHEMA, type Table } from "./schema";
 
 export interface NLResult {
   sql: string;
@@ -19,8 +19,8 @@ const AGG_WORDS: { re: RegExp; fn: string }[] = [
   { re: /\bminimum\b|\blowest\b|\bmin\b/i, fn: "MIN" },
 ];
 
-function findTable(text: string): string | null {
-  for (const t of SCHEMA) {
+function findTable(text: string, schema: Table[]): string | null {
+  for (const t of schema) {
     if (text.includes(t.name.toLowerCase())) return t.name;
     // crude singular/plural handling
     if (t.name.endsWith("s") && text.includes(t.name.slice(0, -1)))
@@ -29,22 +29,26 @@ function findTable(text: string): string | null {
   return null;
 }
 
-function findColumn(table: string, text: string): string | null {
-  const t = SCHEMA.find((x) => x.name === table)!;
+function findColumn(
+  table: string,
+  text: string,
+  schema: Table[],
+): string | null {
+  const t = schema.find((x) => x.name === table)!;
   for (const c of t.columns) {
     if (text.includes(c.name.toLowerCase())) return c.name;
   }
   return null;
 }
 
-export function nlToSQL(input: string): NLResult {
+export function nlToSQL(input: string, schema: Table[] = SCHEMA): NLResult {
   const text = input.toLowerCase().trim();
   const rules: string[] = [];
   let conf = 0.3;
 
   // Detect intent
   const agg = AGG_WORDS.find((a) => a.re.test(text));
-  const table = findTable(text);
+  const table = findTable(text, schema);
   if (!table) {
     return {
       sql: "",
@@ -62,7 +66,7 @@ export function nlToSQL(input: string): NLResult {
 
   // Pattern 1: aggregation over whole table
   if (agg && !/per\s+\w+|by\s+\w+|each\s+\w+/.test(text)) {
-    const col = findColumn(table, text);
+    const col = findColumn(table, text, schema);
     const arg = col ?? "*";
     sql = `SELECT ${agg.fn}(${arg}) FROM ${table};`;
     interpretation = `Aggregate query: ${agg.fn} of ${arg === "*" ? "all rows" : `\`${col}\``} in \`${table}\`.`;
@@ -73,8 +77,8 @@ export function nlToSQL(input: string): NLResult {
   // Pattern 2: grouped aggregation ("... per city", "... by category")
   else if (agg) {
     const m = text.match(/\b(?:per|by|each)\s+(\w+)/);
-    const groupCol = m ? findColumn(table, m[1]) : null;
-    const valCol = findColumn(table, text);
+    const groupCol = m ? findColumn(table, m[1], schema) : null;
+    const valCol = findColumn(table, text, schema);
     const arg = valCol && valCol !== groupCol ? valCol : "*";
     if (!groupCol) {
       sql = `SELECT ${agg.fn}(${arg}) FROM ${table};`;
@@ -90,7 +94,8 @@ export function nlToSQL(input: string): NLResult {
 
   // Pattern 3: filter + list ("show/list ... where/in/above/below")
   else {
-    const cols = SCHEMA.find((x) => x.name === table)!
+    const cols = schema
+      .find((x) => x.name === table)!
       .columns.filter((c) => c.name !== "id")
       .map((c) => c.name);
     const sel = cols.join(", ");
@@ -109,21 +114,31 @@ export function nlToSQL(input: string): NLResult {
         ? ">"
         : "<";
       const col =
-        findColumn(table, text) ??
-        (table === "products" ? "price" : "total_amount");
+        findColumn(table, text, schema) ??
+        schema
+          .find((x) => x.name === table)!
+          .columns.find(
+            (column) => column.type !== "TEXT" && column.name !== "id",
+          )?.name ??
+        "id";
       where = ` WHERE ${col} ${op} ${cmpMatch[2]}`;
       interpretation = `Filter \`${table}\` where \`${col}\` ${op} ${cmpMatch[2]}, then project readable columns.`;
       rules.push(`where:${col}${op}${cmpMatch[2]}`);
       conf += 0.3;
     } else if (inMatch) {
       const city = inMatch[1].trim().split(" ")[0];
-      const col = findColumn(table, text) ?? "city";
+      const col =
+        findColumn(table, text, schema) ??
+        schema
+          .find((x) => x.name === table)!
+          .columns.find((column) => column.type === "TEXT")?.name ??
+        "name";
       where = ` WHERE ${col} = '${city.charAt(0).toUpperCase() + city.slice(1)}'`;
       interpretation = `Filter \`${table}\` where \`${col}\` equals '${city}', projecting readable columns.`;
       rules.push(`where:${col}='${city}'`);
       conf += 0.3;
     } else if (namedMatch) {
-      const col = findColumn(table, text) ?? "name";
+      const col = findColumn(table, text, schema) ?? "name";
       where = ` WHERE ${col} = '${namedMatch[1]}'`;
       interpretation = `Equality filter on \`${col}\`.`;
       rules.push(`where:${col}='${namedMatch[1]}'`);
@@ -147,7 +162,7 @@ export function nlToSQL(input: string): NLResult {
   }
   if (/\b(sorted|ordered) by (\w+)/.test(text)) {
     const col = text.match(/\b(sorted|ordered) by (\w+)/)![2];
-    const real = findColumn(table, col);
+    const real = findColumn(table, col, schema);
     if (real) {
       sql = sql.replace(/;$/, "") + ` ORDER BY ${real} DESC;`;
       rules.push(`orderBy:${real}`);

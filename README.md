@@ -6,7 +6,8 @@ through visualization, simulation, and step-by-step explanations.
 ## Features
 
 - **Natural language input** → rule-based translation to SQL with confidence score,
-  matched rules, and plain-English interpretation.
+  matched rules, and plain-English interpretation. Very low-confidence questions
+  automatically fall back to Gemini through the AI SDK.
 - **Direct SQL editor** with validation messages for unsupported syntax.
 - **Step-by-step execution pipeline** — the query runs as an explicit relational-algebra
   plan (`FROM → JOIN → WHERE → GROUP BY → HAVING → AGGREGATE/SELECT → ORDER BY → LIMIT`),
@@ -22,6 +23,7 @@ through visualization, simulation, and step-by-step explanations.
 
 - Next.js (App Router) + React 19 + TypeScript
 - Tailwind CSS v4
+- Vercel AI SDK + Google Gemini for low-confidence translation fallback
 - Custom in-browser mini SQL engine (`src/lib/sqlEngine.ts`) — no backend needed;
   all operations run client-side in well under 2 s.
 
@@ -33,6 +35,10 @@ pnpm dev
 ```
 
 Open http://localhost:3000.
+
+For the Gemini fallback, copy `.env.example` to `.env.local` and set
+`GEMINI_API_KEY` to a Google AI API key. Confident translations
+continue to use the local rule-based translator without an API call.
 
 ## Sample Inputs & Expected Outputs
 

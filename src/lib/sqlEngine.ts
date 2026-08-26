@@ -4,7 +4,7 @@
 //   -> aggregates -> ORDER BY -> LIMIT
 // Each stage records its intermediate result so the UI can animate it.
 
-import { getTable, type Column } from "./schema";
+import { getTable, SCHEMA, type Table } from "./schema";
 
 export type Row = Record<string, string | number>;
 
@@ -26,6 +26,7 @@ export interface QueryResult {
 
 export interface ParsedQuery {
   select: string[]; // expressions or "*"
+  distinct: boolean;
   aggregates: { fn: "COUNT" | "SUM" | "AVG" | "MIN" | "MAX"; arg: string }[];
   from: string;
   joins: {
@@ -55,12 +56,13 @@ function strip(s: string): string {
 }
 
 /** Very small SQL parser for the teaching subset. Throws on unsupported syntax. */
-export function parseSQL(sql: string): ParsedQuery {
+export function parseSQL(sql: string, schema: Table[] = SCHEMA): ParsedQuery {
   const q = strip(sql).trim();
   if (!/^select\s/i.test(q))
     throw new Error("Only SELECT statements are supported.");
   const parsed: ParsedQuery = {
     select: [],
+    distinct: false,
     aggregates: [],
     from: "",
     joins: [],
@@ -75,7 +77,7 @@ export function parseSQL(sql: string): ParsedQuery {
   // FROM + JOINs
   const fromParts = parsed.from.split(/\s+join\s+/i);
   parsed.from = fromParts[0].split(/\s+/)[0];
-  if (!getTable(parsed.from))
+  if (!getTable(parsed.from, schema))
     throw new Error(`Unknown table "${parsed.from}".`);
   for (let i = 1; i < fromParts.length; i++) {
     const m = fromParts[i].match(
@@ -84,12 +86,17 @@ export function parseSQL(sql: string): ParsedQuery {
     if (!m) throw new Error(`Unsupported JOIN syntax: "JOIN ${fromParts[i]}".`);
     const type = /^left/i.test(m[1] ?? "") ? "LEFT" : "INNER";
     const table = m[3].toLowerCase();
-    if (!getTable(table)) throw new Error(`Unknown table "${table}".`);
+    if (!getTable(table, schema)) throw new Error(`Unknown table "${table}".`);
     parsed.joins.push({ table, left: m[4], right: m[5], type });
   }
 
   // SELECT list
-  for (const item of sel.split(",")) {
+  const selectList = sel.replace(/^distinct\b\s*/i, () => {
+    parsed.distinct = true;
+    return "";
+  });
+  if (!selectList.trim()) throw new Error("Missing SELECT expression.");
+  for (const item of selectList.split(",")) {
     const t = item.trim();
     const agg = t.match(
       /^(count|sum|avg|min|max)\s*\(\s*(\*|\w+(\.\w+)?)\s*\)$/i,
@@ -187,7 +194,10 @@ function colName(col: string): string {
 }
 
 /** Execute a parsed query, recording every pipeline stage. */
-export function executeParsed(p: ParsedQuery): QueryResult {
+export function executeParsed(
+  p: ParsedQuery,
+  schema: Table[] = SCHEMA,
+): QueryResult {
   const steps: PipelineStep[] = [];
   const push = (
     stage: string,
@@ -200,7 +210,7 @@ export function executeParsed(p: ParsedQuery): QueryResult {
   };
 
   // 1. FROM — scan base table
-  const baseTable = getTable(p.from)!;
+  const baseTable = getTable(p.from, schema)!;
   let rows: Row[] = baseTable.rows.map((r) => ({ ...r }));
   push(
     "FROM",
@@ -212,7 +222,7 @@ export function executeParsed(p: ParsedQuery): QueryResult {
 
   // 2. JOINs — nested loop join
   for (const j of p.joins) {
-    const jt = getTable(j.table)!;
+    const jt = getTable(j.table, schema)!;
     const out: Row[] = [];
     for (const l of rows) {
       let matched = false;
@@ -366,6 +376,25 @@ export function executeParsed(p: ParsedQuery): QueryResult {
     );
   }
 
+  if (p.distinct) {
+    const beforeDistinct = finalRows.length;
+    const seen = new Set<string>();
+    const uniqueRows = finalRows.filter((row) => {
+      const key = JSON.stringify(outCols.map((column) => row[column]));
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    finalRows.splice(0, finalRows.length, ...uniqueRows);
+    push(
+      "DISTINCT",
+      "Deduplicate DISTINCT",
+      `Removed duplicate projected rows: kept ${finalRows.length} of ${beforeDistinct}.`,
+      finalRows.slice(0, 50),
+      outCols,
+    );
+  }
+
   // 6. ORDER BY
   if (p.orderBy) {
     const { expr, dir } = p.orderBy;
@@ -417,9 +446,9 @@ function coerce(v: string): string | number {
   return /^-?\d+(\.\d+)?$/.test(v) ? Number(v) : v;
 }
 
-export function executeSQL(sql: string): QueryResult {
+export function executeSQL(sql: string, schema: Table[] = SCHEMA): QueryResult {
   try {
-    return executeParsed(parseSQL(sql));
+    return executeParsed(parseSQL(sql, schema), schema);
   } catch (e) {
     return {
       steps: [],

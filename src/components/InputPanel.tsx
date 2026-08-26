@@ -1,7 +1,11 @@
-import { EXAMPLES } from "@/lib/examples";
 import type { InputPanelProps } from "./nlSqlTypes";
+import { DatasetDropdown } from "./DatasetDropdown";
 
 export function InputPanel({
+  datasets,
+  selectedDatasetId,
+  onDatasetChange,
+  examples,
   nlInput,
   onNlInputChange,
   onTranslate,
@@ -16,9 +20,22 @@ export function InputPanel({
 }: InputPanelProps) {
   return (
     <section
-      className="panel p-4 flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-5rem)]"
+      className="input-panel-scrollbar panel p-4 flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-5rem)]"
       aria-label="Input panel"
     >
+      <div className="dataset-picker p-3">
+        <label
+          htmlFor="dataset"
+          className="text-xs font-semibold uppercase tracking-wider opacity-70 block mb-2"
+        >
+          Choose a dataset
+        </label>
+        <DatasetDropdown
+          datasets={datasets}
+          selectedDatasetId={selectedDatasetId}
+          onChange={onDatasetChange}
+        />
+      </div>
       <div>
         <h2 className="font-semibold mb-2">1. Ask in Natural Language</h2>
         <textarea
@@ -81,7 +98,7 @@ export function InputPanel({
       <div>
         <h2 className="font-semibold mb-2">Sample Inputs</h2>
         <ul className="space-y-1.5">
-          {EXAMPLES.map((example) => (
+          {examples.map((example) => (
             <li key={example.id}>
               <button
                 onClick={() => {

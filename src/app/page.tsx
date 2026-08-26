@@ -6,12 +6,15 @@ import { ExplanationPanel } from "@/components/ExplanationPanel";
 import { InputPanel } from "@/components/InputPanel";
 import type { HistoryItem, Tab } from "@/components/nlSqlTypes";
 import { VisualizationPanel } from "@/components/VisualizationPanel";
-import { erDiagramMermaid } from "@/lib/schema";
+import { DATASETS, erDiagramMermaid } from "@/lib/schema";
 import { nlToSQL } from "@/lib/nlToSql";
 import { executeSQL, type PipelineStep, type Row } from "@/lib/sqlEngine";
 
+const LLM_CONFIDENCE_THRESHOLD = 0.45;
+
 export default function Home() {
   const [dark, setDark] = useState(false);
+  const [selectedDatasetId, setSelectedDatasetId] = useState("ecommerce");
   const [nlInput, setNlInput] = useState("");
   const [sql, setSql] = useState(
     "SELECT name, city FROM customers WHERE city = 'Mumbai';",
@@ -26,6 +29,8 @@ export default function Home() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [tab, setTab] = useState<Tab>("result");
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const selectedDataset =
+    DATASETS.find((dataset) => dataset.id === selectedDatasetId) ?? DATASETS[0];
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
@@ -52,7 +57,7 @@ export default function Home() {
       const q = (query ?? sql).trim();
       if (timer.current) clearInterval(timer.current);
       setPlaying(false);
-      const result = executeSQL(q);
+      const result = executeSQL(q, selectedDataset.schema);
       setSteps(result.steps);
       setFinalRows(result.finalRows);
       setColumns(result.columns);
@@ -75,8 +80,21 @@ export default function Home() {
         });
       }
     },
-    [sql, nlInput],
+    [sql, nlInput, selectedDataset],
   );
+
+  const changeDataset = useCallback((id: string) => {
+    const dataset = DATASETS.find((item) => item.id === id) ?? DATASETS[0];
+    setSelectedDatasetId(dataset.id);
+    setSql(dataset.defaultQuery);
+    setNlInput("");
+    setNlInfo(null);
+    setSteps([]);
+    setFinalRows([]);
+    setColumns([]);
+    setError(undefined);
+    setActiveStep(0);
+  }, []);
 
   const play = useCallback(() => {
     if (!steps.length) return;
@@ -102,11 +120,48 @@ export default function Home() {
     [],
   );
 
-  const translateNL = useCallback(() => {
-    const info = nlToSQL(nlInput);
-    setNlInfo(info);
-    if (info.sql) runQuery(info.sql, nlInput);
-  }, [nlInput, runQuery]);
+  const translateNL = useCallback(async () => {
+    const ruleResult = nlToSQL(nlInput, selectedDataset.schema);
+    if (ruleResult.confidence > LLM_CONFIDENCE_THRESHOLD) {
+      setNlInfo(ruleResult);
+      if (ruleResult.sql) runQuery(ruleResult.sql, nlInput);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: nlInput,
+          datasetId: selectedDataset.id,
+        }),
+      });
+      const result = (await response.json()) as {
+        sql?: string;
+        confidence?: number;
+        matchedRules?: string[];
+        interpretation?: string;
+        error?: string;
+      };
+      if (!response.ok || !result.sql) {
+        throw new Error(result.error ?? "LLM translation failed.");
+      }
+      const llmResult = {
+        sql: result.sql,
+        confidence: result.confidence ?? 0.8,
+        matchedRules: result.matchedRules ?? ["llm:gemini-2.5-flash"],
+        interpretation: result.interpretation ?? "Calling an LLM.",
+      };
+      setNlInfo(llmResult);
+      runQuery(llmResult.sql, nlInput);
+    } catch (error) {
+      setNlInfo(ruleResult);
+      setError(
+        error instanceof Error ? error.message : "LLM translation failed.",
+      );
+    }
+  }, [nlInput, runQuery, selectedDataset]);
 
   const selectExample = useCallback(
     (question: string, query: string) => {
@@ -164,7 +219,10 @@ export default function Home() {
     download(new Blob([markdown], { type: "text/markdown" }), "report.md");
   }, [sql, steps, finalRows, columns, error]);
 
-  const mermaidSource = useMemo(() => erDiagramMermaid(), []);
+  const mermaidSource = useMemo(
+    () => erDiagramMermaid(selectedDataset.schema),
+    [selectedDataset],
+  );
   const current = steps[activeStep];
 
   return (
@@ -172,6 +230,10 @@ export default function Home() {
       <AppHeader dark={dark} onToggleDark={() => setDark((value) => !value)} />
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-[320px_1fr_340px] gap-4 p-4">
         <InputPanel
+          datasets={DATASETS}
+          selectedDatasetId={selectedDataset.id}
+          onDatasetChange={changeDataset}
+          examples={selectedDataset.examples}
           nlInput={nlInput}
           onNlInputChange={setNlInput}
           onTranslate={translateNL}
@@ -198,6 +260,7 @@ export default function Home() {
           onExportCSV={exportCSV}
           onExportReport={exportReport}
           mermaidSource={mermaidSource}
+          schema={selectedDataset.schema}
           dark={dark}
         />
         <ExplanationPanel current={current} error={error} />

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { SCHEMA } from "@/lib/schema";
+import type { Table } from "@/lib/schema";
 import type { PipelineStep, Row } from "@/lib/sqlEngine";
 import type { Tab } from "./nlSqlTypes";
 import { Theory } from "./Theory";
@@ -30,6 +30,7 @@ interface VisualizationPanelProps {
   onExportCSV: () => void;
   onExportReport: () => void;
   mermaidSource: string;
+  schema: Table[];
   dark: boolean;
 }
 
@@ -47,6 +48,7 @@ export function VisualizationPanel({
   onExportCSV,
   onExportReport,
   mermaidSource,
+  schema,
   dark,
 }: VisualizationPanelProps) {
   return (
@@ -85,7 +87,9 @@ export function VisualizationPanel({
           onExportReport={onExportReport}
         />
       )}
-      {tab === "schema" && <SchemaView source={mermaidSource} dark={dark} />}
+      {tab === "schema" && (
+        <SchemaView schema={schema} source={mermaidSource} dark={dark} />
+      )}
       {tab === "theory" && <Theory />}
     </section>
   );
@@ -104,7 +108,7 @@ function ResultView({
   onExportReport,
 }: Omit<
   VisualizationPanelProps,
-  "tab" | "onTabChange" | "mermaidSource" | "dark"
+  "tab" | "onTabChange" | "mermaidSource" | "schema" | "dark"
 >) {
   return (
     <>
@@ -184,12 +188,20 @@ function ResultView({
   );
 }
 
-function SchemaView({ source, dark }: { source: string; dark: boolean }) {
+function SchemaView({
+  schema,
+  source,
+  dark,
+}: {
+  schema: Table[];
+  source: string;
+  dark: boolean;
+}) {
   return (
     <div className="panel p-4 overflow-auto">
       <h2 className="font-semibold mb-3">Database Schema</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {SCHEMA.map((table) => (
+        {schema.map((table) => (
           <div key={table.name} className="panel p-3">
             <h3 className="font-mono font-semibold text-base mb-1">
               {table.name}

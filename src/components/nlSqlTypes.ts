@@ -1,3 +1,4 @@
+import type { Dataset, DatasetExample } from "@/lib/schema";
 import type { NLResult } from "@/lib/nlToSql";
 import type { PipelineStep, Row } from "@/lib/sqlEngine";
 
@@ -12,6 +13,10 @@ export interface HistoryItem {
 export type Tab = "result" | "schema" | "theory";
 
 export interface InputPanelProps {
+  datasets: Dataset[];
+  selectedDatasetId: string;
+  onDatasetChange: (id: string) => void;
+  examples: DatasetExample[];
   nlInput: string;
   onNlInputChange: (value: string) => void;
   onTranslate: () => void;
