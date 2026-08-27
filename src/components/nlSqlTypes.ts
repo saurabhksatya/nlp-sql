@@ -33,6 +33,14 @@ export interface InputPanelProps {
   error?: string;
   history: HistoryItem[];
   onSelectHistory: (item: HistoryItem) => void;
+  onVoiceTranslateAndRun?: (params: {
+    audioBase64?: string;
+    mimeType?: string;
+    question?: string;
+  }) => void;
+  isTranslating?: boolean;
+  voiceFeedback?: boolean;
+  onToggleVoiceFeedback?: (enabled: boolean) => void;
 }
 
 export interface VisualizationPanelProps {

@@ -8,6 +8,7 @@ import type { HistoryItem, Tab } from "@/components/nlSqlTypes";
 import { VisualizationPanel } from "@/components/VisualizationPanel";
 import { DATASETS, erDiagramMermaid } from "@/lib/schema";
 import { executeSQL, type PipelineStep, type Row } from "@/lib/sqlEngine";
+import { speakText } from "@/lib/useSpeechRecognition";
 
 export default function Home() {
   const [dark, setDark] = useState(false);
@@ -21,6 +22,8 @@ export default function Home() {
     confidence: number;
     interpretation: string;
   } | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [voiceFeedback, setVoiceFeedback] = useState(false);
   const [steps, setSteps] = useState<PipelineStep[]>([]);
   const [finalRows, setFinalRows] = useState<Row[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
@@ -34,8 +37,28 @@ export default function Home() {
     DATASETS.find((dataset) => dataset.id === selectedDatasetId) ?? DATASETS[0];
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-  }, [dark]);
+    try {
+      const savedTheme = localStorage.getItem("nlp-sql-theme");
+      const isDark =
+        savedTheme !== null
+          ? savedTheme === "dark"
+          : document.documentElement.classList.contains("dark") ||
+            window.matchMedia("(prefers-color-scheme: dark)").matches;
+      setDark(isDark);
+      document.documentElement.classList.toggle("dark", isDark);
+    } catch {}
+  }, []);
+
+  const toggleDark = useCallback(() => {
+    setDark((previous) => {
+      const next = !previous;
+      document.documentElement.classList.toggle("dark", next);
+      try {
+        localStorage.setItem("nlp-sql-theme", next ? "dark" : "light");
+      } catch {}
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     let loadHistory: ReturnType<typeof setTimeout> | undefined;
@@ -121,41 +144,77 @@ export default function Home() {
     [],
   );
 
-  const translateNL = useCallback(async () => {
-    setError(undefined);
-    setNlInfo(null);
-    try {
-      const response = await fetch("/api/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: nlInput,
-          datasetId: selectedDataset.id,
-        }),
-      });
-      const result = (await response.json()) as {
-        sql?: string;
-        confidence?: number;
-        interpretation?: string;
-        error?: string;
-      };
-      if (!response.ok || !result.sql) {
-        throw new Error(result.error ?? "LLM translation failed.");
+  const translateNL = useCallback(
+    async (
+      params?:
+        | string
+        | { question?: string; audioBase64?: string; mimeType?: string },
+    ) => {
+      let questionToTranslate =
+        typeof params === "string"
+          ? params.trim()
+          : (params?.question ?? nlInput).trim();
+      const audioBase64 =
+        typeof params === "object" ? params.audioBase64 : undefined;
+      const mimeType =
+        typeof params === "object" ? params.mimeType : undefined;
+
+      if (!questionToTranslate && !audioBase64) return;
+      if (questionToTranslate) {
+        setNlInput(questionToTranslate);
       }
-      const llmResult = {
-        sql: result.sql,
-        confidence: result.confidence ?? 0.8,
-        interpretation: result.interpretation ?? "Calling an LLM.",
-      };
-      setNlInfo(llmResult);
-      setSql(llmResult.sql);
-      runQuery(llmResult.sql, nlInput);
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : "LLM translation failed.",
-      );
-    }
-  }, [nlInput, runQuery, selectedDataset]);
+      setError(undefined);
+      setNlInfo(null);
+      setIsTranslating(true);
+      try {
+        const response = await fetch("/api/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question: questionToTranslate || undefined,
+            audioBase64,
+            mimeType,
+            datasetId: selectedDataset.id,
+          }),
+        });
+        const result = (await response.json()) as {
+          question?: string;
+          sql?: string;
+          confidence?: number;
+          interpretation?: string;
+          error?: string;
+        };
+        if (!response.ok || !result.sql) {
+          throw new Error(result.error ?? "LLM translation failed.");
+        }
+        if (result.question) {
+          setNlInput(result.question);
+          questionToTranslate = result.question;
+        }
+        const llmResult = {
+          sql: result.sql,
+          confidence: result.confidence ?? 1.0,
+          interpretation: result.interpretation ?? "Generated query.",
+        };
+        setNlInfo(llmResult);
+        setSql(llmResult.sql);
+        runQuery(
+          llmResult.sql,
+          questionToTranslate || result.question || "Voice query",
+        );
+        if (voiceFeedback && llmResult.interpretation) {
+          speakText(llmResult.interpretation);
+        }
+      } catch (error) {
+        setError(
+          error instanceof Error ? error.message : "LLM translation failed.",
+        );
+      } finally {
+        setIsTranslating(false);
+      }
+    },
+    [nlInput, runQuery, selectedDataset, voiceFeedback],
+  );
 
   const selectExample = useCallback(
     (question: string, query: string) => {
@@ -221,7 +280,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <AppHeader dark={dark} onToggleDark={() => setDark((value) => !value)} />
+      <AppHeader dark={dark} onToggleDark={toggleDark} />
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-[320px_1fr_340px] gap-4 p-4">
         <InputPanel
           datasets={DATASETS}
@@ -230,7 +289,7 @@ export default function Home() {
           examples={selectedDataset.examples}
           nlInput={nlInput}
           onNlInputChange={setNlInput}
-          onTranslate={translateNL}
+          onTranslate={() => translateNL()}
           nlInfo={nlInfo}
           sql={sql}
           onSqlChange={setSql}
@@ -239,6 +298,10 @@ export default function Home() {
           error={error}
           history={history}
           onSelectHistory={selectHistory}
+          onVoiceTranslateAndRun={(params) => translateNL(params)}
+          isTranslating={isTranslating}
+          voiceFeedback={voiceFeedback}
+          onToggleVoiceFeedback={setVoiceFeedback}
         />
         <VisualizationPanel
           tab={tab}

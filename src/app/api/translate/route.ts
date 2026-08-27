@@ -4,50 +4,108 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { DATASETS } from "@/lib/schema";
 import { parseSQL } from "@/lib/sqlEngine";
-import { loadEnvVariable } from "@/lib/env";
+import env, { loadEnvVariable } from "@/lib/env";
 
-const requestSchema = z.object({
-  question: z.string().trim().min(1).max(1000),
-  datasetId: z.string().min(1),
-});
+const requestSchema = z
+  .object({
+    question: z.string().trim().max(1000).optional(),
+    audioBase64: z.string().min(1).optional(),
+    mimeType: z.string().optional(),
+    datasetId: z.string().min(1),
+  })
+  .refine((data) => Boolean(data.question || data.audioBase64), {
+    message: "Either question or audioBase64 must be provided.",
+  });
 
-const responseSchema = z.object({
+const textResponseSchema = z.object({
   sql: z.string().min(1),
   interpretation: z.string().min(1),
 });
 
+const audioResponseSchema = z.object({
+  question: z
+    .string()
+    .describe("Transcribed natural language question spoken in the audio"),
+  sql: z.string().describe("Generated SQL SELECT query"),
+  interpretation: z
+    .string()
+    .describe("Brief 1-sentence interpretation of the query"),
+});
+
 export async function POST(request: Request) {
   try {
-    const body = requestSchema.parse(await request.json());
+    const rawBody = await request.json();
+    const body = requestSchema.parse(rawBody);
     const dataset = DATASETS.find((item) => item.id === body.datasetId);
     if (!dataset) {
       return NextResponse.json({ error: "Unknown dataset." }, { status: 400 });
     }
 
-    const google = createGoogleGenerativeAI({
-      apiKey: loadEnvVariable("GEMINI_API_KEY"),
-    });
-    const systemPrompt = `You translate natural-language questions into SQL for a small educational query engine.
+    const google = createGoogleGenerativeAI({ apiKey: env.GEMINI_API_KEY });
+
+    const systemPrompt = `You translate natural-language database questions into SQL for an educational query engine.
 Only use tables and columns from the supplied schema.
 The "sql" field must contain a single SELECT statement.
 Supported SQL: SELECT, INNER/LEFT JOIN, one WHERE condition, GROUP BY, HAVING, ORDER BY, and LIMIT.
 Do not use subqueries, INSERT, UPDATE, DELETE, DDL, comments, or markdown fences.
 Schema:\n${JSON.stringify(dataset.schema, null, 2)}`;
 
-    const result = await Promise.race([
-      generateObject({
-        model: google("gemini-3.5-flash-lite"),
-        schema: responseSchema,
-        system: systemPrompt,
-        prompt: body.question,
-      }),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("AI timeout")), 10000),
-      ),
-    ]);
+    let generatedSql = "";
+    let interpretation = "";
+    let transcribedQuestion = body.question || "";
+
+    if (body.audioBase64) {
+      // Direct audio voice-to-SQL processing via Gemini multimodal capabilities
+      const result = await Promise.race([
+        generateObject({
+          model: google("gemini-3.6-flash"),
+          schema: audioResponseSchema,
+          system: systemPrompt,
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: "Listen to the spoken audio and translate it into a valid SQL query matching the schema. Provide the transcribed question and interpretation.",
+                },
+                {
+                  type: "file",
+                  data: body.audioBase64,
+                  mediaType: body.mimeType || "audio/webm",
+                },
+              ],
+            },
+          ],
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("AI voice timeout")), 15000),
+        ),
+      ]);
+
+      generatedSql = result.object.sql;
+      interpretation = result.object.interpretation;
+      transcribedQuestion = result.object.question;
+    } else {
+      // Text question translation
+      const result = await Promise.race([
+        generateObject({
+          model: google("gemini-3.6-flash"),
+          schema: textResponseSchema,
+          system: systemPrompt,
+          prompt: body.question!,
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("AI timeout")), 10000),
+        ),
+      ]);
+
+      generatedSql = result.object.sql;
+      interpretation = result.object.interpretation;
+    }
 
     try {
-      parseSQL(result.object.sql, dataset.schema);
+      parseSQL(generatedSql, dataset.schema);
     } catch (error) {
       const message =
         error instanceof Error
@@ -60,9 +118,10 @@ Schema:\n${JSON.stringify(dataset.schema, null, 2)}`;
     }
 
     return NextResponse.json({
-      sql: result.object.sql,
+      question: transcribedQuestion,
+      sql: generatedSql,
       confidence: 1,
-      interpretation: result.object.interpretation,
+      interpretation,
     });
   } catch (error) {
     const message =
