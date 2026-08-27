@@ -1,100 +1,137 @@
-# NL→SQL Visualizer
+# NL→SQL Visualizer & Voice-to-SQL Engine
 
-An interactive web application that teaches and demonstrates **Natural Language to SQL**
-through visualization, simulation, and step-by-step explanations.
+An interactive web application that teaches and demonstrates **Natural Language & Voice to SQL** through visualization, simulation, and step-by-step pipeline explanations.
 
-## Features
+---
 
-- **Natural language input** → rule-based translation to SQL with confidence score,
-  matched rules, and plain-English interpretation. Very low-confidence questions
-  automatically fall back to Gemini through the AI SDK.
-- **Direct SQL editor** with validation messages for unsupported syntax.
-- **Step-by-step execution pipeline** — the query runs as an explicit relational-algebra
-  plan (`FROM → JOIN → WHERE → GROUP BY → HAVING → AGGREGATE/SELECT → ORDER BY → LIMIT`),
-  each stage showing its intermediate rows, row counts, and complexity.
-- **Animated playback** of the pipeline.
-- **Explanation panel** — per-stage theory notes + relational algebra notation.
-- **Schema / ER tab** — full schema with PK/FK markers and Mermaid ER source.
-- **Theory tab** — definitions, use cases, limitations, algorithms & complexities, references.
-- **History** (persisted in localStorage), **CSV export**, and **Markdown report export**.
-- **Dark/light mode**, responsive three-panel dashboard, accessible labels.
+## 🚀 Features
 
-## Tech Stack
+- **🎙️ Direct Voice-to-SQL ("Speak & Run")**:
+  - Speak your database questions directly with one click.
+  - Browser-native `MediaRecorder` audio capture with real-time volume-reactive equalizer animations.
+  - Multimodal Google Gemini AI engine that transcribes your spoken audio, validates the dataset schema, and generates the exact SQL query in a single pass.
+  - Inline microphone button inside the textarea for dictation.
+  - Optional **Text-to-Speech (TTS)** voice readback of the query interpretation.
+- **💬 Natural Language Query Translation**:
+  - Translates plain-English queries into SQL using Google Gemini with confidence scoring and explanations.
+- **⚡ Direct SQL Editor**:
+  - Write SQL directly with instant syntax validation and error reporting.
+- **📊 Step-by-Step Relational Algebra Pipeline**:
+  - The query executes as an explicit relational algebra plan (`FROM → JOIN → WHERE → GROUP BY → HAVING → AGGREGATE/SELECT → ORDER BY → LIMIT`).
+  - Intermediate rows, row counts, and stage complexity displayed at each stage.
+- **▶️ Animated Pipeline Playback**:
+  - Step through or auto-play query execution step by step.
+- **📖 Theory & Explanation Panels**:
+  - Per-stage relational algebra notation, algorithms, and complexity analysis.
+- **🗄️ Interactive Schema & ER Diagrams**:
+  - Multi-dataset switcher (E-commerce, College, etc.) with Mermaid ER diagram visualization and PK/FK markers.
+- **💾 Persistence & Export**:
+  - Dark/light theme persisted across page reloads with anti-flicker pre-hydration.
+  - Query history saved to `localStorage`.
+  - Export query execution results to **CSV** or comprehensive **Markdown reports**.
 
-- Next.js (App Router) + React 19 + TypeScript
-- Tailwind CSS v4
-- Vercel AI SDK + Google Gemini for low-confidence translation fallback
-- Custom in-browser mini SQL engine (`src/lib/sqlEngine.ts`) — no backend needed;
-  all operations run client-side in well under 2 s.
+---
 
-## Getting Started
+## 🛠️ Tech Stack
+
+- **Framework**: [Next.js](https://nextjs.org/) (App Router, Turbopack) + [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **AI & Multimodal**: [Vercel AI SDK](https://sdk.vercel.ai/) + [Google Gemini API](https://ai.google.dev/) (`@ai-sdk/google`)
+- **Diagrams**: [Mermaid.js](https://mermaid.js.org/)
+- **Audio & Speech**: Web `MediaRecorder` API, `AudioContext` Frequency Analyser, and Web Speech Synthesis API (TTS)
+- **Local SQL Engine**: Custom in-browser relational execution engine (`src/lib/sqlEngine.ts`) with zero external database dependencies.
+
+---
+
+## 🏁 Getting Started
+
+### 1. Clone & Install Dependencies
 
 ```bash
 pnpm install
+```
+
+### 2. Configure Environment Variables
+
+Create a `.env` file in the root directory (refer to `.env.example`):
+
+```env
+GEMINI_API_KEY=your_google_gemini_api_key_here
+```
+
+### 3. Run Development Server
+
+```bash
 pnpm dev
 ```
 
-Open http://localhost:3000.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-For the Gemini fallback, copy `.env.example` to `.env.local` and set
-`GEMINI_API_KEY` to a Google AI API key. Confident translations
-continue to use the local rule-based translator without an API call.
+---
 
-## Sample Inputs & Expected Outputs
+## 📋 Sample Queries
 
-| #   | Question                                          | Generated SQL                                                             | Expected output                      |
-| --- | ------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------ |
-| 1   | How many customers are there?                     | `SELECT COUNT(*) FROM customers;`                                         | 6                                    |
-| 2   | Show products with price above 5000               | `SELECT name, category, price FROM products WHERE price > 5000;`          | Laptop Pro, Office Chair, Study Desk |
-| 3   | Average total amount per customer in orders       | `SELECT customer_id, AVG(total_amount) FROM orders GROUP BY customer_id;` | one row per customer_id              |
-| 4   | List customers in Mumbai                          | `SELECT name, city, signup_year FROM customers WHERE city = 'Mumbai';`    | Asha Verma, Meera Nair               |
-| 5   | Total quantity ordered per product in order_items | `SELECT product_id, SUM(quantity) FROM order_items GROUP BY product_id;`  | one row per product_id               |
-| 6   | Top 3 highest priced products sorted by price     | `... ORDER BY price DESC LIMIT 3;`                                        | Laptop Pro, Study Desk, Office Chair |
+| # | Question / Voice Prompt | Generated SQL | Expected Output |
+|---|---|---|---|
+| 1 | *How many customers are there?* | `SELECT COUNT(*) FROM customers;` | 6 |
+| 2 | *Show products with price above 5000* | `SELECT name, category, price FROM products WHERE price > 5000;` | Laptop Pro, Office Chair, Study Desk |
+| 3 | *Average total amount per customer in orders* | `SELECT customer_id, AVG(total_amount) FROM orders GROUP BY customer_id;` | One row per `customer_id` |
+| 4 | *List customers in Mumbai* | `SELECT name, city, signup_year FROM customers WHERE city = 'Mumbai';` | Asha Verma, Meera Nair |
+| 5 | *Total quantity ordered per product in order_items* | `SELECT product_id, SUM(quantity) FROM order_items GROUP BY product_id;` | Aggregated quantities |
+| 6 | *Top 3 highest priced products sorted by price* | `SELECT name, category, price FROM products ORDER BY price DESC LIMIT 3;` | Top 3 products sorted |
 
-## Project Structure
+---
+
+## 📂 Project Structure
 
 ```
-src/
-  app/page.tsx        # Three-panel dashboard UI
-  lib/schema.ts       # Sample e-commerce database + ER diagram generator
-  lib/sqlEngine.ts    # Mini SQL parser + step-recording execution engine
-  lib/nlToSql.ts      # Rule-based natural-language → SQL translator
-  lib/examples.ts     # Sample inputs with expected outputs
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── translate/route.ts   # Multimodal Voice & Text to SQL API (Gemini)
+│   │   ├── globals.css              # Theme tokens & audio equalizer animations
+│   │   ├── layout.tsx               # Root layout with anti-flicker theme script
+│   │   └── page.tsx                 # Main interactive dashboard
+│   ├── components/
+│   │   ├── AppHeader.tsx            # Header with dark/light mode toggle
+│   │   ├── DatasetDropdown.tsx      # Dataset switcher dropdown
+│   │   ├── ExplanationPanel.tsx     # Query explanation & relational algebra
+│   │   ├── InputPanel.tsx           # Voice, natural language, & SQL inputs
+│   │   ├── Theory.tsx               # Database theory & references
+│   │   ├── VisualizationPanel.tsx   # Step-by-step pipeline & result visualizer
+│   │   ├── VoiceButton.tsx          # Volume-reactive audio voice button
+│   │   └── nlSqlTypes.ts            # Component type definitions
+│   └── lib/
+│       ├── env.ts                   # Environment variable loader
+│       ├── examples.ts              # Pre-loaded sample queries
+│       ├── schema.ts                # Dataset definitions & Mermaid ER generator
+│       ├── sqlEngine.ts             # In-browser mini SQL parser & relational engine
+│       └── useSpeechRecognition.ts  # MediaRecorder & AudioContext custom hook
+├── .env.example
+├── package.json
+└── README.md
 ```
 
-## Algorithms & Complexity
+---
 
-| Operation          | Algorithm             | Complexity           |
-| ------------------ | --------------------- | -------------------- |
-| NL→SQL translation | Rule/pattern matching | O(L) question length |
-| Join               | Nested-loop join      | O(n·m)               |
-| Filter / project   | Linear scan           | O(n)                 |
-| Grouping           | Hash aggregation      | O(n) expected        |
-| Sort               | Comparison sort       | O(n log n)           |
+## ⚡ Execution Complexity
 
-## Supported SQL Subset
+| Stage | Operation | Algorithm | Complexity |
+|---|---|---|---|
+| 1 | **FROM** | Table scan | $O(N)$ |
+| 2 | **JOIN** | Nested-loop join | $O(N \times M)$ |
+| 3 | **WHERE** | Linear filter predicate | $O(N)$ |
+| 4 | **GROUP BY** | Hash aggregation | $O(N)$ expected |
+| 5 | **HAVING** | Filter aggregate groups | $O(G)$ groups |
+| 6 | **SELECT** | Projection & computed columns | $O(N)$ |
+| 7 | **ORDER BY** | Comparison sort | $O(N \log N)$ |
+| 8 | **LIMIT** | Slice / truncation | $O(1)$ |
 
-Single-table or INNER/LEFT JOINed SELECT queries with:
-one WHERE condition, GROUP BY (single column), HAVING `AGG(*) op N`,
-ORDER BY (single expression), LIMIT. Anything else produces a clear validation message.
+---
 
-## AI Usage Log
+## 📚 References
 
-This application was generated and refactored with GitHub Copilot (Ox Alpha model):
-scaffolding review, mini SQL engine design, rule-based NL translator, dashboard UI,
-and documentation. Prompts used: the assignment specification plus iterative
-"build X module" requests; every generated file was type-checked and error-fixed
-in-editor.
-
-## References
-
-- Silberschatz, Korth & Sudarshan — _Database System Concepts_, 7th ed.
-- Ramakrishnan & Gehrke — _Database Management Systems_.
-- Yu et al., "Spider: A Large-Scale Human-Labeled Dataset for Complex Text-to-SQL Tasks", EMNLP 2018.
-- ISO/IEC 9075 SQL standard.
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Silberschatz, Korth & Sudarshan — *Database System Concepts*, 7th ed.
+- Ramakrishnan & Gehrke — *Database Management Systems*, 3rd ed.
+- Yu et al. — *"Spider: A Large-Scale Human-Labeled Dataset for Complex Text-to-SQL Tasks"*, EMNLP 2018.
+- ISO/IEC 9075 SQL Standard.
