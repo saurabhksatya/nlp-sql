@@ -7,10 +7,7 @@ import { InputPanel } from "@/components/InputPanel";
 import type { HistoryItem, Tab } from "@/components/nlSqlTypes";
 import { VisualizationPanel } from "@/components/VisualizationPanel";
 import { DATASETS, erDiagramMermaid } from "@/lib/schema";
-import { nlToSQL } from "@/lib/nlToSql";
 import { executeSQL, type PipelineStep, type Row } from "@/lib/sqlEngine";
-
-const LLM_CONFIDENCE_THRESHOLD = 0.45;
 
 export default function Home() {
   const [dark, setDark] = useState(false);
@@ -19,7 +16,11 @@ export default function Home() {
   const [sql, setSql] = useState(
     "SELECT name, city FROM customers WHERE city = 'Mumbai';",
   );
-  const [nlInfo, setNlInfo] = useState<ReturnType<typeof nlToSQL> | null>(null);
+  const [nlInfo, setNlInfo] = useState<{
+    sql: string;
+    confidence: number;
+    interpretation: string;
+  } | null>(null);
   const [steps, setSteps] = useState<PipelineStep[]>([]);
   const [finalRows, setFinalRows] = useState<Row[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
@@ -121,13 +122,8 @@ export default function Home() {
   );
 
   const translateNL = useCallback(async () => {
-    const ruleResult = nlToSQL(nlInput, selectedDataset.schema);
-    if (ruleResult.confidence > LLM_CONFIDENCE_THRESHOLD) {
-      setNlInfo(ruleResult);
-      if (ruleResult.sql) runQuery(ruleResult.sql, nlInput);
-      return;
-    }
-
+    setError(undefined);
+    setNlInfo(null);
     try {
       const response = await fetch("/api/translate", {
         method: "POST",
@@ -140,7 +136,6 @@ export default function Home() {
       const result = (await response.json()) as {
         sql?: string;
         confidence?: number;
-        matchedRules?: string[];
         interpretation?: string;
         error?: string;
       };
@@ -150,13 +145,12 @@ export default function Home() {
       const llmResult = {
         sql: result.sql,
         confidence: result.confidence ?? 0.8,
-        matchedRules: result.matchedRules ?? ["llm:gemini-2.5-flash"],
         interpretation: result.interpretation ?? "Calling an LLM.",
       };
       setNlInfo(llmResult);
+      setSql(llmResult.sql);
       runQuery(llmResult.sql, nlInput);
     } catch (error) {
-      setNlInfo(ruleResult);
       setError(
         error instanceof Error ? error.message : "LLM translation failed.",
       );
@@ -259,6 +253,7 @@ export default function Home() {
           columns={columns}
           onExportCSV={exportCSV}
           onExportReport={exportReport}
+          sql={sql}
           mermaidSource={mermaidSource}
           schema={selectedDataset.schema}
           dark={dark}

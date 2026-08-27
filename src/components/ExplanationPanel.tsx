@@ -15,6 +15,8 @@ const NOTES: Record<string, string> = {
     "Selection (σ) is a row filter — it removes tuples that fail the predicate but never changes their shape.",
   "GROUP BY":
     "Grouping partitions rows into buckets so aggregates can be computed per bucket, usually via hashing or sorting.",
+  DISTINCT:
+    "DISTINCT removes duplicate values or rows so each remaining value is considered only once.",
   HAVING:
     "HAVING filters groups *after* aggregation, unlike WHERE which filters rows before it.",
   AGGREGATE:
@@ -90,6 +92,8 @@ function algebraFor(stage: string): string {
       return "R ← σ_condition(R)";
     case "GROUP BY":
       return "R ← γ_group-cols(R)";
+    case "DISTINCT":
+      return "R ← δ(R)";
     case "HAVING":
       return "R ← σ_agg-condition(γ(R))";
     case "AGGREGATE":

@@ -9,6 +9,7 @@ const STAGE_COLORS: Record<string, string> = {
   JOIN: "bg-cyan-500",
   WHERE: "bg-amber-500",
   "GROUP BY": "bg-violet-500",
+  DISTINCT: "bg-indigo-500",
   HAVING: "bg-fuchsia-500",
   AGGREGATE: "bg-emerald-500",
   SELECT: "bg-emerald-500",
@@ -29,6 +30,7 @@ interface VisualizationPanelProps {
   columns: string[];
   onExportCSV: () => void;
   onExportReport: () => void;
+  sql: string;
   mermaidSource: string;
   schema: Table[];
   dark: boolean;
@@ -47,6 +49,7 @@ export function VisualizationPanel({
   columns,
   onExportCSV,
   onExportReport,
+  sql,
   mermaidSource,
   schema,
   dark,
@@ -85,6 +88,7 @@ export function VisualizationPanel({
           columns={columns}
           onExportCSV={onExportCSV}
           onExportReport={onExportReport}
+          sql={sql}
         />
       )}
       {tab === "schema" && (
@@ -106,6 +110,7 @@ function ResultView({
   columns,
   onExportCSV,
   onExportReport,
+  sql,
 }: Omit<
   VisualizationPanelProps,
   "tab" | "onTabChange" | "mermaidSource" | "schema" | "dark"
@@ -124,6 +129,9 @@ function ResultView({
             {playing ? "⏸ Pause" : "▶ Animate"}
           </button>
         </div>
+        <pre className="mb-3 overflow-x-auto whitespace-pre-wrap wrap-break-word rounded bg-black/5 p-2 text-xs font-mono dark:bg-white/5">
+          {sql}
+        </pre>
         {steps.length === 0 ? (
           <p className="text-sm opacity-50">
             Run a query to see its execution plan.

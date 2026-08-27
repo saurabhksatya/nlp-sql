@@ -27,7 +27,11 @@ export interface QueryResult {
 export interface ParsedQuery {
   select: string[]; // expressions or "*"
   distinct: boolean;
-  aggregates: { fn: "COUNT" | "SUM" | "AVG" | "MIN" | "MAX"; arg: string }[];
+  aggregates: {
+    fn: "COUNT" | "SUM" | "AVG" | "MIN" | "MAX";
+    arg: string;
+    distinct?: boolean;
+  }[];
   from: string;
   joins: {
     table: string;
@@ -99,12 +103,13 @@ export function parseSQL(sql: string, schema: Table[] = SCHEMA): ParsedQuery {
   for (const item of selectList.split(",")) {
     const t = item.trim();
     const agg = t.match(
-      /^(count|sum|avg|min|max)\s*\(\s*(\*|\w+(\.\w+)?)\s*\)$/i,
+      /^(count|sum|avg|min|max)\s*\(\s*(distinct\s+)?(\*|\w+(\.\w+)?)\s*\)$/i,
     );
     if (agg) {
       parsed.aggregates.push({
         fn: agg[1].toUpperCase() as ParsedQuery["aggregates"][number]["fn"],
-        arg: agg[2],
+        arg: agg[3],
+        distinct: Boolean(agg[2]),
       });
       parsed.select.push(t.toUpperCase());
     } else if (/^[\w.*]+$/.test(t)) {
@@ -289,14 +294,20 @@ export function executeParsed(
   const outCols: string[] = [];
   const finalRows: Row[] = [];
 
-  const computeAgg = (grp: Row[], fn: string, arg: string): string | number => {
+  const computeAgg = (
+    grp: Row[],
+    fn: string,
+    arg: string,
+    distinct = false,
+  ): string | number => {
     const f = fn.toUpperCase();
-    if (f === "COUNT")
-      return arg === "*"
-        ? grp.length
-        : grp.filter((r) => resolveCol(r, arg) != null).length;
-    const nums = grp
-      .map((r) => Number(resolveCol(r, arg)))
+    const values = grp
+      .map((r) => resolveCol(r, arg))
+      .filter((value): value is string | number => value != null);
+    const input = distinct ? [...new Set(values)] : values;
+    if (f === "COUNT") return arg === "*" ? grp.length : input.length;
+    const nums = input
+      .map((value) => Number(value))
       .filter((n) => !isNaN(n));
     if (f === "SUM") return nums.reduce((a, b) => a + b, 0);
     if (f === "AVG")
@@ -308,6 +319,38 @@ export function executeParsed(
     return 0;
   };
 
+  const distinctAggregate = p.aggregates.find((aggregate) => aggregate.distinct);
+  if (distinctAggregate) {
+    const distinctRows: Row[] = [];
+    const seen = new Set<string>();
+    for (const row of rows) {
+      const value = resolveCol(row, distinctAggregate.arg);
+      if (value == null && distinctAggregate.arg !== "*") continue;
+      const key = JSON.stringify(
+        p.groupBy
+          ? [resolveCol(row, p.groupBy), value]
+          : [value],
+      );
+      if (seen.has(key)) continue;
+      seen.add(key);
+      distinctRows.push(
+        p.groupBy
+          ? {
+              [colName(p.groupBy)]: resolveCol(row, p.groupBy) ?? "",
+              [colName(distinctAggregate.arg)]: value ?? "",
+            }
+          : { [colName(distinctAggregate.arg)]: value ?? "" },
+      );
+    }
+    push(
+      "DISTINCT",
+      `Deduplicate ${distinctAggregate.arg}`,
+      `Removed duplicate values before ${distinctAggregate.fn} aggregation: kept ${distinctRows.length} distinct value(s).`,
+      distinctRows,
+      Object.keys(distinctRows[0] ?? {}),
+    );
+  }
+
   if (p.aggregates.length || p.groupBy) {
     const list = groups ?? [rows];
     const keys = p.groupBy ? groupKeys : ["ALL"];
@@ -316,7 +359,7 @@ export function executeParsed(
       if (p.groupBy) out[colName(p.groupBy)] = keys[i];
       for (const a of p.aggregates) {
         const label = `${a.fn.toLowerCase()}_${a.arg === "*" ? "all" : colName(a.arg)}`;
-        out[label] = computeAgg(grp, a.fn, a.arg);
+        out[label] = computeAgg(grp, a.fn, a.arg, a.distinct);
       }
       finalRows.push(out);
     });

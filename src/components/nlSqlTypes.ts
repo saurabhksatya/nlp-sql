@@ -1,6 +1,11 @@
 import type { Dataset, DatasetExample } from "@/lib/schema";
-import type { NLResult } from "@/lib/nlToSql";
 import type { PipelineStep, Row } from "@/lib/sqlEngine";
+
+export interface NLResult {
+  sql: string;
+  confidence: number;
+  interpretation: string;
+}
 
 export interface HistoryItem {
   id: number;
