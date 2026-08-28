@@ -4,15 +4,48 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { ExplanationPanel } from "@/components/ExplanationPanel";
 import { InputPanel } from "@/components/InputPanel";
+import { DatasetModal } from "@/components/DatasetModal";
 import type { HistoryItem, Tab } from "@/components/nlSqlTypes";
 import { VisualizationPanel } from "@/components/VisualizationPanel";
-import { DATASETS, erDiagramMermaid } from "@/lib/schema";
-import { executeSQL, type PipelineStep, type Row } from "@/lib/sqlEngine";
+import {
+  DATASETS,
+  getDefaultSchema,
+  erDiagramMermaid,
+  type Table,
+  type Dataset,
+} from "@/lib/schema";
+import {
+  executeSQL,
+  type PipelineStep,
+  type Row,
+} from "@/lib/sqlEngine";
 import { speakText } from "@/lib/useSpeechRecognition";
+
+const CUSTOM_DATASETS_KEY = "nlp-sql-custom-datasets";
 
 export default function Home() {
   const [dark, setDark] = useState(false);
+  const [customDatasets, setCustomDatasets] = useState<Dataset[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = useState("ecommerce");
+  const [isDatasetModalOpen, setIsDatasetModalOpen] = useState(false);
+
+  const allDatasets = useMemo(
+    () => [...DATASETS, ...customDatasets],
+    [customDatasets],
+  );
+
+  const selectedDataset = useMemo(
+    () =>
+      allDatasets.find((dataset) => dataset.id === selectedDatasetId) ??
+      allDatasets[0],
+    [allDatasets, selectedDatasetId],
+  );
+
+  // Dynamic active database schema per dataset session
+  const [activeSchema, setActiveSchema] = useState<Table[]>(() =>
+    getDefaultSchema("ecommerce"),
+  );
+
   const [nlInput, setNlInput] = useState("");
   const [sql, setSql] = useState(
     "SELECT name, city FROM customers WHERE city = 'Mumbai';",
@@ -33,8 +66,6 @@ export default function Home() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [tab, setTab] = useState<Tab>("result");
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const selectedDataset =
-    DATASETS.find((dataset) => dataset.id === selectedDatasetId) ?? DATASETS[0];
 
   useEffect(() => {
     try {
@@ -61,6 +92,18 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    try {
+      const savedCustom = localStorage.getItem(CUSTOM_DATASETS_KEY);
+      if (savedCustom) {
+        const parsed = JSON.parse(savedCustom) as Dataset[];
+        if (Array.isArray(parsed)) {
+          setCustomDatasets(parsed);
+        }
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
     let loadHistory: ReturnType<typeof setTimeout> | undefined;
     try {
       const savedHistory = localStorage.getItem("nlp-sql-history");
@@ -81,12 +124,19 @@ export default function Home() {
       const q = (query ?? sql).trim();
       if (timer.current) clearInterval(timer.current);
       setPlaying(false);
-      const result = executeSQL(q, selectedDataset.schema);
+
+      const result = executeSQL(q, activeSchema);
       setSteps(result.steps);
       setFinalRows(result.finalRows);
       setColumns(result.columns);
       setError(result.error);
       setActiveStep(0);
+
+      // If DDL or DML modified the schema or rows, update activeSchema state
+      if (!result.error && result.updatedSchema) {
+        setActiveSchema(result.updatedSchema);
+      }
+
       if (!result.error && result.steps.length) {
         const item: HistoryItem = {
           id: Date.now(),
@@ -104,13 +154,29 @@ export default function Home() {
         });
       }
     },
-    [sql, nlInput, selectedDataset],
+    [sql, nlInput, activeSchema],
   );
 
-  const changeDataset = useCallback((id: string) => {
-    const dataset = DATASETS.find((item) => item.id === id) ?? DATASETS[0];
-    setSelectedDatasetId(dataset.id);
-    setSql(dataset.defaultQuery);
+  const changeDataset = useCallback(
+    (id: string) => {
+      const dataset = allDatasets.find((item) => item.id === id) ?? allDatasets[0];
+      setSelectedDatasetId(dataset.id);
+      setActiveSchema(getDefaultSchema(dataset.id, allDatasets));
+      setSql(dataset.defaultQuery);
+      setNlInput("");
+      setNlInfo(null);
+      setSteps([]);
+      setFinalRows([]);
+      setColumns([]);
+      setError(undefined);
+      setActiveStep(0);
+    },
+    [allDatasets],
+  );
+
+  const resetDatabase = useCallback(() => {
+    setActiveSchema(getDefaultSchema(selectedDataset.id, allDatasets));
+    setSql(selectedDataset.defaultQuery);
     setNlInput("");
     setNlInfo(null);
     setSteps([]);
@@ -118,7 +184,44 @@ export default function Home() {
     setColumns([]);
     setError(undefined);
     setActiveStep(0);
+  }, [selectedDataset, allDatasets]);
+
+  const handleCreateDataset = useCallback((newDataset: Dataset) => {
+    setCustomDatasets((prev) => {
+      const next = [newDataset, ...prev.filter((d) => d.id !== newDataset.id)];
+      try {
+        localStorage.setItem(CUSTOM_DATASETS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+    setSelectedDatasetId(newDataset.id);
+    setActiveSchema(newDataset.schema);
+    setSql(newDataset.defaultQuery);
+    setNlInput("");
+    setNlInfo(null);
+    setSteps([]);
+    setFinalRows([]);
+    setColumns([]);
+    setError(undefined);
+    setActiveStep(0);
+    setTab("schema");
   }, []);
+
+  const handleDeleteDataset = useCallback(
+    (id: string) => {
+      setCustomDatasets((prev) => {
+        const next = prev.filter((d) => d.id !== id);
+        try {
+          localStorage.setItem(CUSTOM_DATASETS_KEY, JSON.stringify(next));
+        } catch {}
+        return next;
+      });
+      if (selectedDatasetId === id) {
+        changeDataset("ecommerce");
+      }
+    },
+    [selectedDatasetId, changeDataset],
+  );
 
   const play = useCallback(() => {
     if (!steps.length) return;
@@ -175,6 +278,7 @@ export default function Home() {
             audioBase64,
             mimeType,
             datasetId: selectedDataset.id,
+            schema: activeSchema,
           }),
         });
         const result = (await response.json()) as {
@@ -213,7 +317,7 @@ export default function Home() {
         setIsTranslating(false);
       }
     },
-    [nlInput, runQuery, selectedDataset, voiceFeedback],
+    [nlInput, runQuery, selectedDataset, activeSchema, voiceFeedback],
   );
 
   const selectExample = useCallback(
@@ -273,8 +377,8 @@ export default function Home() {
   }, [sql, steps, finalRows, columns, error]);
 
   const mermaidSource = useMemo(
-    () => erDiagramMermaid(selectedDataset.schema),
-    [selectedDataset],
+    () => erDiagramMermaid(activeSchema),
+    [activeSchema],
   );
   const current = steps[activeStep];
 
@@ -283,9 +387,11 @@ export default function Home() {
       <AppHeader dark={dark} onToggleDark={toggleDark} />
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-[320px_1fr_340px] gap-4 p-4">
         <InputPanel
-          datasets={DATASETS}
+          datasets={allDatasets}
           selectedDatasetId={selectedDataset.id}
           onDatasetChange={changeDataset}
+          onOpenCreateModal={() => setIsDatasetModalOpen(true)}
+          onDeleteDataset={handleDeleteDataset}
           examples={selectedDataset.examples}
           nlInput={nlInput}
           onNlInputChange={setNlInput}
@@ -295,6 +401,7 @@ export default function Home() {
           onSqlChange={setSql}
           onRunQuery={() => runQuery()}
           onExampleSelect={selectExample}
+          onResetDatabase={resetDatabase}
           error={error}
           history={history}
           onSelectHistory={selectHistory}
@@ -318,11 +425,17 @@ export default function Home() {
           onExportReport={exportReport}
           sql={sql}
           mermaidSource={mermaidSource}
-          schema={selectedDataset.schema}
+          schema={activeSchema}
           dark={dark}
         />
         <ExplanationPanel current={current} error={error} />
       </main>
+      <DatasetModal
+        isOpen={isDatasetModalOpen}
+        onClose={() => setIsDatasetModalOpen(false)}
+        onCreateDataset={handleCreateDataset}
+        dark={dark}
+      />
     </div>
   );
 }

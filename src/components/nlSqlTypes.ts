@@ -1,5 +1,11 @@
-import type { Dataset, DatasetExample } from "@/lib/schema";
-import type { PipelineStep, Row } from "@/lib/sqlEngine";
+import type { Dataset, DatasetExample, Table } from "@/lib/schema";
+import type {
+  PipelineStep,
+  Row,
+  StatementType,
+  SQLCommand,
+  QueryResult,
+} from "@/lib/sqlEngine";
 
 export interface NLResult {
   sql: string;
@@ -13,6 +19,8 @@ export interface HistoryItem {
   sql: string;
   rows: number;
   time: string;
+  statementType?: StatementType;
+  command?: SQLCommand;
 }
 
 export type Tab = "result" | "schema" | "theory";
@@ -30,7 +38,9 @@ export interface InputPanelProps {
   onSqlChange: (value: string) => void;
   onRunQuery: () => void;
   onExampleSelect: (question: string, sql: string) => void;
+  onResetDatabase: () => void;
   error?: string;
+  lastResult?: QueryResult | null;
   history: HistoryItem[];
   onSelectHistory: (item: HistoryItem) => void;
   onVoiceTranslateAndRun?: (params: {
@@ -41,6 +51,8 @@ export interface InputPanelProps {
   isTranslating?: boolean;
   voiceFeedback?: boolean;
   onToggleVoiceFeedback?: (enabled: boolean) => void;
+  onOpenCreateModal?: () => void;
+  onDeleteDataset?: (id: string) => void;
 }
 
 export interface VisualizationPanelProps {
@@ -56,5 +68,10 @@ export interface VisualizationPanelProps {
   columns: string[];
   onExportCSV: () => void;
   onExportReport: () => void;
+  sql: string;
+  mermaidSource: string;
+  schema: Table[];
   dark: boolean;
+  lastResult?: QueryResult | null;
+  onResetDatabase?: () => void;
 }

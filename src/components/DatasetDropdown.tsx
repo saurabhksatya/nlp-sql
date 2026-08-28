@@ -5,12 +5,16 @@ interface DatasetDropdownProps {
   datasets: Dataset[];
   selectedDatasetId: string;
   onChange: (id: string) => void;
+  onOpenCreateModal?: () => void;
+  onDeleteDataset?: (id: string) => void;
 }
 
 export function DatasetDropdown({
   datasets,
   selectedDatasetId,
   onChange,
+  onOpenCreateModal,
+  onDeleteDataset,
 }: DatasetDropdownProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -70,7 +74,14 @@ export function DatasetDropdown({
         onClick={() => setOpen((isOpen) => !isOpen)}
         onKeyDown={handleKeyDown}
       >
-        <span>{selectedDataset?.name}</span>
+        <span className="flex items-center gap-2 truncate">
+          <span>{selectedDataset?.name}</span>
+          {selectedDataset?.isCustom && (
+            <span className="text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-semibold uppercase">
+              Custom
+            </span>
+          )}
+        </span>
         <span
           className={`dataset-chevron ${open ? "dataset-chevron-open" : ""}`}
           aria-hidden="true"
@@ -81,28 +92,69 @@ export function DatasetDropdown({
           id="dataset-options"
           role="listbox"
           aria-label="Datasets"
-          className="dataset-menu absolute z-20 mt-2 w-full overflow-hidden rounded-xl p-1.5"
+          className="dataset-menu absolute z-20 mt-2 w-full overflow-hidden rounded-xl p-1.5 max-h-80 overflow-y-auto"
         >
           {datasets.map((dataset) => {
             const selected = dataset.id === selectedDataset?.id;
             return (
-              <button
+              <div
                 key={dataset.id}
-                type="button"
-                role="option"
-                aria-selected={selected}
-                className={`dataset-option w-full rounded-lg px-3 py-2 text-left ${selected ? "dataset-option-selected" : ""}`}
-                onClick={() => selectDataset(dataset.id)}
+                className={`dataset-option w-full rounded-lg px-3 py-2 text-left flex items-center justify-between ${
+                  selected ? "dataset-option-selected" : ""
+                }`}
               >
-                <span className="block text-sm font-semibold">
-                  {dataset.name}
-                </span>
-                <span className="mt-0.5 block text-xs opacity-60">
-                  {dataset.description}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  className="flex-1 text-left"
+                  onClick={() => selectDataset(dataset.id)}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="block text-sm font-semibold">
+                      {dataset.name}
+                    </span>
+                    {dataset.isCustom && (
+                      <span className="text-[9px] px-1 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold uppercase">
+                        Custom
+                      </span>
+                    )}
+                  </div>
+                  <span className="mt-0.5 block text-xs opacity-60 line-clamp-1">
+                    {dataset.description}
+                  </span>
+                </button>
+                {dataset.isCustom && onDeleteDataset && (
+                  <button
+                    type="button"
+                    title="Delete custom dataset"
+                    className="p-1 text-xs opacity-50 hover:opacity-100 hover:text-rose-500 ml-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteDataset(dataset.id);
+                    }}
+                  >
+                    🗑
+                  </button>
+                )}
+              </div>
             );
           })}
+
+          {onOpenCreateModal && (
+            <div className="pt-1 mt-1 border-t">
+              <button
+                type="button"
+                className="dataset-option w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5 hover:bg-indigo-500/10"
+                onClick={() => {
+                  setOpen(false);
+                  onOpenCreateModal();
+                }}
+              >
+                <span>+ Create New Dataset...</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

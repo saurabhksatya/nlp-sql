@@ -19,6 +19,7 @@ export function InputPanel({
   onSqlChange,
   onRunQuery,
   onExampleSelect,
+  onResetDatabase,
   error,
   history,
   onSelectHistory,
@@ -26,6 +27,8 @@ export function InputPanel({
   isTranslating = false,
   voiceFeedback = false,
   onToggleVoiceFeedback,
+  onOpenCreateModal,
+  onDeleteDataset,
 }: InputPanelProps) {
   const [autoExecute, setAutoExecute] = useState(true);
 
@@ -81,16 +84,40 @@ export function InputPanel({
       aria-label="Input panel"
     >
       <div className="dataset-picker p-3">
-        <label
-          htmlFor="dataset"
-          className="text-xs font-semibold uppercase tracking-wider opacity-70 block mb-2"
-        >
-          Choose a dataset
-        </label>
+        <div className="flex items-center justify-between mb-2">
+          <label
+            htmlFor="dataset"
+            className="text-xs font-semibold uppercase tracking-wider opacity-70 block"
+          >
+            Choose a dataset
+          </label>
+          <div className="flex items-center gap-1.5">
+            {onOpenCreateModal && (
+              <button
+                type="button"
+                onClick={onOpenCreateModal}
+                title="Create a new custom dataset with tables"
+                className="text-[11px] px-2 py-0.5 rounded border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 transition-colors font-medium cursor-pointer"
+              >
+                + New
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onResetDatabase}
+              title="Reset database tables and data to defaults"
+              className="text-[11px] px-2 py-0.5 rounded border border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors font-medium cursor-pointer"
+            >
+              ↺ Reset DB
+            </button>
+          </div>
+        </div>
         <DatasetDropdown
           datasets={datasets}
           selectedDatasetId={selectedDatasetId}
           onChange={onDatasetChange}
+          onOpenCreateModal={onOpenCreateModal}
+          onDeleteDataset={onDeleteDataset}
         />
       </div>
 
@@ -236,7 +263,7 @@ export function InputPanel({
         />
         <button
           onClick={onRunQuery}
-          className="mt-2 w-full py-2 rounded-lg text-sm font-medium panel hover:opacity-80 transition-opacity"
+          className="mt-2 w-full py-2 rounded-lg text-sm font-medium panel hover:opacity-80 transition-opacity cursor-pointer"
         >
           Execute SQL ⚡
         </button>

@@ -5,6 +5,12 @@ import type { Tab } from "./nlSqlTypes";
 import { Theory } from "./Theory";
 
 const STAGE_COLORS: Record<string, string> = {
+  PARSER: "bg-blue-600",
+  CATALOG: "bg-purple-600",
+  CONSTRAINT: "bg-amber-600",
+  MUTATION: "bg-rose-600",
+  COMMIT: "bg-emerald-600",
+  SCHEMA: "bg-indigo-600",
   FROM: "bg-sky-500",
   JOIN: "bg-cyan-500",
   WHERE: "bg-amber-500",
@@ -64,7 +70,7 @@ export function VisualizationPanel({
           <button
             key={item}
             onClick={() => onTabChange(item)}
-            className={`px-3 py-1.5 rounded-lg text-sm capitalize ${tab === item ? "text-white" : "panel"}`}
+            className={`px-3 py-1.5 rounded-lg text-sm capitalize cursor-pointer ${tab === item ? "text-white" : "panel"}`}
             style={tab === item ? { background: "var(--accent)" } : undefined}
           >
             {item === "result"
@@ -123,7 +129,7 @@ function ResultView({
           <button
             onClick={onPlay}
             disabled={!steps.length}
-            className="px-3 py-1 rounded-lg text-xs text-white disabled:opacity-40"
+            className="px-3 py-1 rounded-lg text-xs text-white disabled:opacity-40 cursor-pointer"
             style={{ background: "var(--accent)" }}
           >
             {playing ? "⏸ Pause" : "▶ Animate"}
@@ -142,7 +148,7 @@ function ResultView({
               <li key={index}>
                 <button
                   onClick={() => onStepChange(index)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-mono text-white transition-transform ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono text-white transition-transform cursor-pointer ${
                     index === activeStep
                       ? "scale-110 ring-2 ring-offset-2"
                       : "opacity-60"
@@ -177,13 +183,13 @@ function ResultView({
             <div className="flex gap-2">
               <button
                 onClick={onExportCSV}
-                className="text-xs panel px-2 py-1 hover:opacity-75"
+                className="text-xs panel px-2 py-1 hover:opacity-75 cursor-pointer"
               >
                 ⬇ CSV
               </button>
               <button
                 onClick={onExportReport}
-                className="text-xs panel px-2 py-1 hover:opacity-75"
+                className="text-xs panel px-2 py-1 hover:opacity-75 cursor-pointer"
               >
                 ⬇ Report
               </button>
@@ -259,18 +265,25 @@ function MermaidDiagram({ source, dark }: { source: string; dark: boolean }) {
 
   useEffect(() => {
     let cancelled = false;
-    void import("mermaid").then(({ default: mermaid }) => {
-      if (cancelled || !diagramRef.current) return;
-      mermaid.initialize({
-        startOnLoad: false,
-        securityLevel: "strict",
-        theme: dark ? "dark" : "default",
-      });
-      return mermaid.render("nl-sql-er-diagram", source).then(({ svg }) => {
+    const renderId = "er_" + Math.random().toString(36).slice(2, 9);
+    void import("mermaid")
+      .then(({ default: mermaid }) => {
         if (cancelled || !diagramRef.current) return;
-        diagramRef.current.innerHTML = svg;
+        mermaid.initialize({
+          startOnLoad: false,
+          securityLevel: "strict",
+          theme: dark ? "dark" : "default",
+        });
+        return mermaid.render(renderId, source);
+      })
+      .then((result) => {
+        if (cancelled || !diagramRef.current || !result) return;
+        diagramRef.current.innerHTML = result.svg;
+      })
+      .catch((err) => {
+        if (cancelled || !diagramRef.current) return;
+        diagramRef.current.innerHTML = `<p class="text-xs text-rose-500 p-2">ER Diagram rendering error: ${err instanceof Error ? err.message : String(err)}</p>`;
       });
-    });
     return () => {
       cancelled = true;
     };

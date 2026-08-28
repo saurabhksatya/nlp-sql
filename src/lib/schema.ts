@@ -1,7 +1,16 @@
-// Sample e-commerce database used for the NL→SQL demo.
-// Small enough to visualize row-by-row, realistic enough to be meaningful.
+// Sample database schemas and definitions used for the DBMS visualizer.
 
-export type ColumnType = "INTEGER" | "TEXT" | "REAL";
+export type ColumnType =
+  | "INTEGER"
+  | "TEXT"
+  | "REAL"
+  | "VARCHAR"
+  | "INT"
+  | "FLOAT"
+  | "DOUBLE"
+  | "BOOLEAN"
+  | "DATE"
+  | "NUMERIC";
 
 export interface Column {
   name: string;
@@ -18,6 +27,7 @@ export interface Table {
 
 export interface DatasetExample {
   id: number;
+  category?: "DQL" | "DML" | "DDL";
   question: string;
   sql: string;
   expected: string;
@@ -30,6 +40,8 @@ export interface Dataset {
   schema: Table[];
   defaultQuery: string;
   examples: DatasetExample[];
+  isCustom?: boolean;
+  createdAt?: number;
 }
 
 export const SCHEMA: Table[] = [
@@ -163,21 +175,59 @@ export const DATASETS: Dataset[] = [
     examples: [
       {
         id: 1,
+        category: "DQL",
         question: "How many customers are there?",
         sql: "SELECT COUNT(*) FROM customers;",
         expected: "Count all customers.",
       },
       {
         id: 2,
+        category: "DQL",
         question: "Show products with price above 5000",
         sql: "SELECT name, category, price FROM products WHERE price > 5000;",
         expected: "Products priced above 5000.",
       },
       {
         id: 3,
+        category: "DQL",
         question: "Average total amount per customer in orders",
         sql: "SELECT customer_id, AVG(total_amount) FROM orders GROUP BY customer_id;",
         expected: "Average order value per customer.",
+      },
+      {
+        id: 4,
+        category: "DML",
+        question: "Insert a new customer into customers table",
+        sql: "INSERT INTO customers (id, name, city, signup_year) VALUES (7, 'Sunil Sharma', 'Bengaluru', 2024);",
+        expected: "Insert new customer row into customers table.",
+      },
+      {
+        id: 5,
+        category: "DML",
+        question: "Update product price for Laptop Pro",
+        sql: "UPDATE products SET price = 94999 WHERE id = 101;",
+        expected: "Update Laptop Pro price to 94999.",
+      },
+      {
+        id: 6,
+        category: "DML",
+        question: "Delete orders with id 1006",
+        sql: "DELETE FROM orders WHERE id = 1006;",
+        expected: "Delete order with ID 1006.",
+      },
+      {
+        id: 7,
+        category: "DDL",
+        question: "Create a new suppliers table",
+        sql: "CREATE TABLE suppliers (id INTEGER PRIMARY KEY, name TEXT, city TEXT, rating REAL);",
+        expected: "Create a new table 'suppliers' in the active schema.",
+      },
+      {
+        id: 8,
+        category: "DDL",
+        question: "Add a status column to orders",
+        sql: "ALTER TABLE orders ADD COLUMN status TEXT;",
+        expected: "Add a new column 'status' to orders table.",
       },
     ],
   },
@@ -250,21 +300,38 @@ export const DATASETS: Dataset[] = [
     examples: [
       {
         id: 1,
+        category: "DQL",
         question: "How many books are there?",
         sql: "SELECT COUNT(*) FROM books;",
         expected: "Count all books.",
       },
       {
         id: 2,
+        category: "DQL",
         question: "Show books with pages above 300",
         sql: "SELECT title, genre, pages FROM books WHERE pages > 300;",
         expected: "Books longer than 300 pages.",
       },
       {
         id: 3,
+        category: "DQL",
         question: "How many loans per member?",
         sql: "SELECT member_id, COUNT(*) FROM loans GROUP BY member_id;",
         expected: "Loan count per member.",
+      },
+      {
+        id: 4,
+        category: "DML",
+        question: "Insert a new book",
+        sql: "INSERT INTO books (id, title, genre, pages) VALUES (105, 'Designing Data-Intensive Applications', 'Technology', 616);",
+        expected: "Add a new book to library catalog.",
+      },
+      {
+        id: 5,
+        category: "DDL",
+        question: "Create authors table",
+        sql: "CREATE TABLE authors (id INTEGER PRIMARY KEY, name TEXT, country TEXT);",
+        expected: "Create a new authors table.",
       },
     ],
   },
@@ -354,47 +421,104 @@ export const DATASETS: Dataset[] = [
     examples: [
       {
         id: 1,
+        category: "DQL",
         question: "How many patients are there?",
         sql: "SELECT COUNT(*) FROM patients;",
         expected: "Count all patients.",
       },
       {
         id: 2,
+        category: "DQL",
         question: "Show patients above age 40",
         sql: "SELECT name, city, age FROM patients WHERE age > 40;",
         expected: "Patients older than 40.",
       },
       {
         id: 3,
+        category: "DQL",
         question: "Average fee per doctor in visits",
         sql: "SELECT doctor_id, AVG(fee) FROM visits GROUP BY doctor_id;",
         expected: "Average visit fee per doctor.",
+      },
+      {
+        id: 4,
+        category: "DML",
+        question: "Insert a new patient",
+        sql: "INSERT INTO patients (id, name, city, age) VALUES (5, 'Karan Singhal', 'Hyderabad', 31);",
+        expected: "Register a new patient.",
+      },
+      {
+        id: 5,
+        category: "DDL",
+        question: "Create departments table",
+        sql: "CREATE TABLE departments (id INTEGER PRIMARY KEY, name TEXT, building TEXT);",
+        expected: "Create a new departments table.",
       },
     ],
   },
 ];
 
+export function cloneSchema(schema: Table[]): Table[] {
+  return schema.map((t) => ({
+    name: t.name,
+    columns: t.columns.map((c) => ({
+      ...c,
+      fk: c.fk ? { ...c.fk } : undefined,
+    })),
+    rows: t.rows.map((r) => ({ ...r })),
+  }));
+}
+
+export function getDefaultSchema(
+  datasetId: string,
+  allDatasets: Dataset[] = DATASETS,
+): Table[] {
+  const dataset =
+    allDatasets.find((d) => d.id === datasetId) ??
+    DATASETS.find((d) => d.id === datasetId) ??
+    DATASETS[0];
+  return cloneSchema(dataset.schema);
+}
+
 export function getTable(
   name: string,
   schema: Table[] = SCHEMA,
 ): Table | undefined {
-  return schema.find((t) => t.name === name.toLowerCase());
+  return schema.find((t) => t.name.toLowerCase() === name.toLowerCase());
 }
 
 /** Mermaid ER diagram source for the schema. */
 export function erDiagramMermaid(schema: Table[] = SCHEMA): string {
+  if (!schema || schema.length === 0) {
+    return "erDiagram\n  EMPTY_DATASET {\n    string status \"No tables in dataset yet\"\n  }\n";
+  }
   let out = "erDiagram\n";
   for (const t of schema) {
-    out += `  ${t.name.toUpperCase()} {\n`;
-    for (const c of t.columns) {
-      out += `    ${c.type} ${c.name}${c.pk ? " PK" : c.fk ? " FK" : ""}\n`;
+    const tableName = (t.name || "UNNAMED_TABLE").replace(/[^\w]/g, "_").toUpperCase();
+    out += `  ${tableName} {\n`;
+    if (!t.columns || t.columns.length === 0) {
+      out += "    string id PK \"(empty table)\"\n";
+    } else {
+      for (const c of t.columns) {
+        const colType = (c.type || "TEXT").replace(/[^\w]/g, "_");
+        const colName = (c.name || "col").replace(/[^\w]/g, "_");
+        out += `    ${colType} ${colName}${c.pk ? " PK" : c.fk ? " FK" : ""}\n`;
+      }
     }
     out += "  }\n";
   }
   for (const t of schema) {
-    for (const c of t.columns) {
-      if (c.fk)
-        out += `  ${c.fk.table.toUpperCase()} ||--o{ ${t.name.toUpperCase()} : has\n`;
+    const tableName = (t.name || "UNNAMED_TABLE").replace(/[^\w]/g, "_").toUpperCase();
+    for (const c of t.columns || []) {
+      if (c.fk && c.fk.table) {
+        const targetTable = schema.find(
+          (other) => other.name.toLowerCase() === c.fk!.table.toLowerCase(),
+        );
+        if (targetTable) {
+          const refTable = targetTable.name.replace(/[^\w]/g, "_").toUpperCase();
+          out += `  ${refTable} ||--o{ ${tableName} : references\n`;
+        }
+      }
     }
   }
   return out;

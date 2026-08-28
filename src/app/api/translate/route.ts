@@ -2,9 +2,9 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { DATASETS } from "@/lib/schema";
+import { DATASETS, type Table } from "@/lib/schema";
 import { parseSQL } from "@/lib/sqlEngine";
-import env, { loadEnvVariable } from "@/lib/env";
+import env from "@/lib/env";
 
 const requestSchema = z
   .object({
@@ -12,6 +12,7 @@ const requestSchema = z
     audioBase64: z.string().min(1).optional(),
     mimeType: z.string().optional(),
     datasetId: z.string().min(1),
+    schema: z.array(z.any()).optional(),
   })
   .refine((data) => Boolean(data.question || data.audioBase64), {
     message: "Either question or audioBase64 must be provided.",
@@ -26,7 +27,7 @@ const audioResponseSchema = z.object({
   question: z
     .string()
     .describe("Transcribed natural language question spoken in the audio"),
-  sql: z.string().describe("Generated SQL SELECT query"),
+  sql: z.string().describe("Generated SQL query matching the schema"),
   interpretation: z
     .string()
     .describe("Brief 1-sentence interpretation of the query"),
@@ -37,28 +38,66 @@ export async function POST(request: Request) {
     const rawBody = await request.json();
     const body = requestSchema.parse(rawBody);
     const dataset = DATASETS.find((item) => item.id === body.datasetId);
-    if (!dataset) {
-      return NextResponse.json({ error: "Unknown dataset." }, { status: 400 });
+    const currentSchema: Table[] =
+      body.schema && body.schema.length > 0
+        ? (body.schema as Table[])
+        : dataset?.schema ?? [];
+
+    if (!currentSchema.length && !dataset) {
+      return NextResponse.json({ error: "Unknown dataset or empty schema." }, { status: 400 });
+    }
+
+    // Fast-path: if question is already a direct SQL statement, validate and return directly
+    if (body.question) {
+      const q = body.question.trim().replace(/;+$/, "");
+      if (
+        /^(select|insert\s+into|insert|update|delete\s+from|delete|create\s+table|drop\s+table|alter\s+table|truncate)\b/i.test(
+          q,
+        )
+      ) {
+        try {
+          parseSQL(q, currentSchema);
+          return NextResponse.json({
+            question: body.question,
+            sql: q + ";",
+            confidence: 1.0,
+            interpretation: `Direct SQL execution: ${q.slice(0, 50)}...`,
+          });
+        } catch {
+          // If direct parse failed, let LLM interpret it
+        }
+      }
     }
 
     const google = createGoogleGenerativeAI({ apiKey: env.GEMINI_API_KEY });
 
-    const systemPrompt = `You translate natural-language database questions into SQL for an educational query engine.
-Only use tables and columns from the supplied schema.
-The "sql" field must contain a single SELECT statement.
-Supported SQL: SELECT, INNER/LEFT JOIN, one WHERE condition, GROUP BY, HAVING, ORDER BY, and LIMIT.
-Do not use subqueries, INSERT, UPDATE, DELETE, DDL, comments, or markdown fences.
-Schema:\n${JSON.stringify(dataset.schema, null, 2)}`;
+    const systemPrompt = `You translate natural-language database questions or instructions into standard SQL for an educational database engine.
+Tables and schema available in this database:
+${JSON.stringify(currentSchema, null, 2)}
+
+Supported SQL Statements:
+- DQL: SELECT [DISTINCT] col1, col2 / aggregates (COUNT, SUM, AVG, MIN, MAX) FROM table [JOIN other ON left=right] [WHERE col op val] [GROUP BY col] [HAVING agg op val] [ORDER BY col [ASC|DESC]] [LIMIT n]
+- DML: INSERT INTO table (col1, col2, ...) VALUES (val1, val2, ...);
+- DML: UPDATE table SET col1 = val1, col2 = val2 [WHERE col op val];
+- DML: DELETE FROM table [WHERE col op val];
+- DDL: CREATE TABLE table (col1 TYPE [PRIMARY KEY] [REFERENCES other(col)], ...);
+- DDL: ALTER TABLE table ADD COLUMN col TYPE; or ALTER TABLE table DROP COLUMN col; or ALTER TABLE table RENAME TO new_name;
+- DDL: DROP TABLE table;
+- DDL: TRUNCATE TABLE table;
+
+Use exact table and column names matching the schema (case-insensitive). Return only valid SQL matching the engine's supported syntax. Do not output markdown fences or comments.`;
 
     let generatedSql = "";
     let interpretation = "";
     let transcribedQuestion = body.question || "";
 
+    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+
     if (body.audioBase64) {
       // Direct audio voice-to-SQL processing via Gemini multimodal capabilities
       const result = await Promise.race([
         generateObject({
-          model: google("gemini-3.6-flash"),
+          model: google(modelName),
           schema: audioResponseSchema,
           system: systemPrompt,
           messages: [
@@ -79,7 +118,7 @@ Schema:\n${JSON.stringify(dataset.schema, null, 2)}`;
           ],
         }),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("AI voice timeout")), 15000),
+          setTimeout(() => reject(new Error("AI voice timeout")), 30000),
         ),
       ]);
 
@@ -90,13 +129,13 @@ Schema:\n${JSON.stringify(dataset.schema, null, 2)}`;
       // Text question translation
       const result = await Promise.race([
         generateObject({
-          model: google("gemini-3.6-flash"),
+          model: google(modelName),
           schema: textResponseSchema,
           system: systemPrompt,
           prompt: body.question!,
         }),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("AI timeout")), 10000),
+          setTimeout(() => reject(new Error("AI timeout")), 30000),
         ),
       ]);
 
@@ -105,7 +144,7 @@ Schema:\n${JSON.stringify(dataset.schema, null, 2)}`;
     }
 
     try {
-      parseSQL(generatedSql, dataset.schema);
+      parseSQL(generatedSql, currentSchema);
     } catch (error) {
       const message =
         error instanceof Error
