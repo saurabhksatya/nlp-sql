@@ -40,22 +40,22 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.input-panel-scrollbar {
+.panel {
   scrollbar-color: #8b5cf6 color-mix(in srgb, var(--border) 55%, transparent);
   scrollbar-width: thin;
 }
 
-.input-panel-scrollbar::-webkit-scrollbar {
+.panel::-webkit-scrollbar {
   width: 10px;
 }
 
-.input-panel-scrollbar::-webkit-scrollbar-track {
+.panel::-webkit-scrollbar-track {
   background: color-mix(in srgb, var(--border) 45%, transparent);
   border-radius: 999px;
   margin: 0.75rem 0;
 }
 
-.input-panel-scrollbar::-webkit-scrollbar-thumb {
+.panel::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #a78bfa, #7c3aed);
   border: 3px solid transparent;
   border-radius: 999px;
@@ -63,12 +63,12 @@ button:disabled {
   min-height: 56px;
 }
 
-.input-panel-scrollbar::-webkit-scrollbar-thumb:hover {
+.panel::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #c4b5fd, #8b5cf6);
   background-clip: padding-box;
 }
 
-.input-panel-scrollbar::-webkit-scrollbar-button {
+.panel::-webkit-scrollbar-button {
   background-color: #9ca3af;
   background-repeat: no-repeat;
   background-position: center;
@@ -77,7 +77,7 @@ button:disabled {
   height: 10px;
 }
 
-.input-panel-scrollbar::-webkit-scrollbar-button:vertical:decrement {
+.panel::-webkit-scrollbar-button:vertical:decrement {
   background-image:
     linear-gradient(135deg, transparent 50%, #4b5563 50%),
     linear-gradient(45deg, #4b5563 50%, transparent 50%);
@@ -87,7 +87,7 @@ button:disabled {
   background-size: 6px 6px;
 }
 
-.input-panel-scrollbar::-webkit-scrollbar-button:vertical:increment {
+.panel::-webkit-scrollbar-button:vertical:increment {
   background-image:
     linear-gradient(135deg, #4b5563 50%, transparent 50%),
     linear-gradient(45deg, transparent 50%, #4b5563 50%);
@@ -166,7 +166,8 @@ button:disabled {
 }
 
 @keyframes soundwave {
-  0%, 100% {
+  0%,
+  100% {
     height: 4px;
   }
   50% {
@@ -185,4 +186,3 @@ button:disabled {
 .animate-soundwave-3 {
   animation: soundwave 0.7s ease-in-out 0.4s infinite;
 }
-
