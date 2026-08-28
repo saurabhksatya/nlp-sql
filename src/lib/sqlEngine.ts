@@ -380,6 +380,67 @@ export function parseSQL(sql: string, schema: Table[] = SCHEMA): ParsedQuery {
   );
 }
 
+export function validateSQLAgainstSchema(
+  sql: string,
+  schema: Table[] = SCHEMA,
+): ParsedQuery {
+  const parsed = parseSQL(sql, schema);
+  if (parsed.type !== "SELECT") return parsed;
+
+  const sourceTables = [parsed.from, ...parsed.joins.map((join) => join.table)];
+  const tableByName = new Map(schema.map((table) => [table.name.toLowerCase(), table]));
+
+  const hasColumn = (reference: string, allowWildcard = false): boolean => {
+    if (allowWildcard && reference === "*") return true;
+    const [qualifier, column] = reference.toLowerCase().split(".");
+    if (!column) {
+      return sourceTables.some((tableName) =>
+        tableByName
+          .get(tableName)
+          ?.columns.some((tableColumn) => tableColumn.name.toLowerCase() === qualifier),
+      );
+    }
+    const table = tableByName.get(qualifier);
+    return (
+      sourceTables.includes(qualifier) &&
+      (column === "*"
+        ? allowWildcard
+        : Boolean(
+            table?.columns.some(
+              (tableColumn) => tableColumn.name.toLowerCase() === column,
+            ),
+          ))
+    );
+  };
+
+  const requireColumn = (reference: string, context: string, allowWildcard = false) => {
+    if (!hasColumn(reference, allowWildcard)) {
+      throw new Error(`Unknown column "${reference}" in ${context}.`);
+    }
+  };
+
+  for (const expression of parsed.select) {
+    if (!/^(COUNT|SUM|AVG|MIN|MAX)\(/i.test(expression)) {
+      requireColumn(expression, "SELECT", expression === "*");
+    }
+  }
+  for (const aggregate of parsed.aggregates) {
+    requireColumn(aggregate.arg, `${aggregate.fn}()`, aggregate.arg === "*");
+  }
+  for (const join of parsed.joins) {
+    requireColumn(join.left, "JOIN");
+    requireColumn(join.right, "JOIN");
+  }
+  if (parsed.where) requireColumn(parsed.where.column, "WHERE");
+  if (parsed.groupBy) requireColumn(parsed.groupBy, "GROUP BY");
+  if (parsed.orderBy) {
+    const aggregate = parsed.orderBy.expr.match(/^(COUNT|SUM|AVG|MIN|MAX)\((\*|[\w.]+)\)$/i);
+    requireColumn(aggregate ? aggregate[2] : parsed.orderBy.expr, "ORDER BY", aggregate?.[2] === "*");
+  }
+
+  return parsed;
+}
+
 function parseSelect(q: string, schema: Table[]): ParsedSelectQuery {
   const parsed: ParsedSelectQuery = {
     type: "SELECT",

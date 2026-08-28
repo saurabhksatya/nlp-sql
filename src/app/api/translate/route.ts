@@ -3,7 +3,7 @@ import { generateObject } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { DATASETS, type Table } from "@/lib/schema";
-import { parseSQL } from "@/lib/sqlEngine";
+import { parseSQL, validateSQLAgainstSchema } from "@/lib/sqlEngine";
 import env from "@/lib/env";
 
 const requestSchema = z
@@ -147,7 +147,7 @@ Use exact table and column names matching the schema (case-insensitive). Return 
     }
 
     try {
-      parseSQL(generatedSql, currentSchema);
+      validateSQLAgainstSchema(generatedSql, dataset?.schema ?? currentSchema);
     } catch (error) {
       const message =
         error instanceof Error
