@@ -41,10 +41,13 @@ export async function POST(request: Request) {
     const currentSchema: Table[] =
       body.schema && body.schema.length > 0
         ? (body.schema as Table[])
-        : dataset?.schema ?? [];
+        : (dataset?.schema ?? []);
 
     if (!currentSchema.length && !dataset) {
-      return NextResponse.json({ error: "Unknown dataset or empty schema." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Unknown dataset or empty schema." },
+        { status: 400 },
+      );
     }
 
     // Fast-path: if question is already a direct SQL statement, validate and return directly
@@ -91,7 +94,7 @@ Use exact table and column names matching the schema (case-insensitive). Return 
     let interpretation = "";
     let transcribedQuestion = body.question || "";
 
-    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    const modelName = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 
     if (body.audioBase64) {
       // Direct audio voice-to-SQL processing via Gemini multimodal capabilities
