@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { DATASETS } from "@/lib/schema";
 import { parseSQL } from "@/lib/sqlEngine";
-import env, { loadEnvVariable } from "@/lib/env";
+import env from "@/lib/env";
 
 const requestSchema = z
   .object({
@@ -34,6 +34,17 @@ const audioResponseSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const apiKey = env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          error:
+            "GEMINI_API_KEY is not configured in .env. Please add your GEMINI_API_KEY to enable AI query translation.",
+        },
+        { status: 503 },
+      );
+    }
+
     const rawBody = await request.json();
     const body = requestSchema.parse(rawBody);
     const dataset = DATASETS.find((item) => item.id === body.datasetId);
@@ -41,7 +52,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unknown dataset." }, { status: 400 });
     }
 
-    const google = createGoogleGenerativeAI({ apiKey: env.GEMINI_API_KEY });
+    const google = createGoogleGenerativeAI({ apiKey });
 
     const systemPrompt = `You translate natural-language database questions into SQL for an educational query engine.
 Only use tables and columns from the supplied schema.
@@ -58,7 +69,7 @@ Schema:\n${JSON.stringify(dataset.schema, null, 2)}`;
       // Direct audio voice-to-SQL processing via Gemini multimodal capabilities
       const result = await Promise.race([
         generateObject({
-          model: google("gemini-3.6-flash"),
+          model: google("gemini-2.5-flash"),
           schema: audioResponseSchema,
           system: systemPrompt,
           messages: [
@@ -90,7 +101,7 @@ Schema:\n${JSON.stringify(dataset.schema, null, 2)}`;
       // Text question translation
       const result = await Promise.race([
         generateObject({
-          model: google("gemini-3.6-flash"),
+          model: google("gemini-2.5-flash"),
           schema: textResponseSchema,
           system: systemPrompt,
           prompt: body.question!,

@@ -41,7 +41,10 @@ export function VoiceButton({
     return (
       <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs">
         <p className="font-semibold flex items-center gap-1.5">
-          <span>⚠️</span> Audio recording unavailable
+          <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>Audio recording unavailable</span>
         </p>
         <p className="mt-0.5 opacity-80">
           Your browser does not permit microphone access.
@@ -136,7 +139,7 @@ export function VoiceButton({
                 <path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" />
                 <path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.751 6.751 0 01-6 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.751 6.751 0 01-6-6.709v-1.5A.75.75 0 016 10.5z" />
               </svg>
-              <span>🎙️ Speak & Run SQL</span>
+              <span>Speak &amp; Run SQL</span>
             </>
           )}
         </button>
@@ -181,7 +184,7 @@ export function VoiceButton({
               onChange={(e) => onToggleVoiceFeedback(e.target.checked)}
               className="accent-indigo-600 rounded"
             />
-            <span>🔊 Read SQL summary</span>
+            <span>Read SQL summary</span>
           </label>
         )}
       </div>
@@ -189,7 +192,7 @@ export function VoiceButton({
       {/* Error alert if any permission or recording error occurred */}
       {error && (
         <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs">
-          <p>⚠️ {error}</p>
+          <p>{error}</p>
         </div>
       )}
     </div>

@@ -41,6 +41,7 @@ export interface InputPanelProps {
   isTranslating?: boolean;
   voiceFeedback?: boolean;
   onToggleVoiceFeedback?: (enabled: boolean) => void;
+  onOpenGuide?: () => void;
 }
 
 export interface VisualizationPanelProps {

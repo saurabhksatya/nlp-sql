@@ -123,10 +123,24 @@ function ResultView({
           <button
             onClick={onPlay}
             disabled={!steps.length}
-            className="px-3 py-1 rounded-lg text-xs text-white disabled:opacity-40"
+            className="px-3 py-1 rounded-lg text-xs text-white disabled:opacity-40 flex items-center gap-1.5"
             style={{ background: "var(--accent)" }}
           >
-            {playing ? "⏸ Pause" : "▶ Animate"}
+            {playing ? (
+              <>
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                </svg>
+                <span>Pause</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                <span>Animate</span>
+              </>
+            )}
           </button>
         </div>
         <pre className="mb-3 overflow-x-auto whitespace-pre-wrap wrap-break-word rounded bg-black/5 p-2 text-xs font-mono dark:bg-white/5">
@@ -177,15 +191,21 @@ function ResultView({
             <div className="flex gap-2">
               <button
                 onClick={onExportCSV}
-                className="text-xs panel px-2 py-1 hover:opacity-75"
+                className="text-xs panel px-2.5 py-1 hover:opacity-75 flex items-center gap-1.5"
               >
-                ⬇ CSV
+                <svg className="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span>CSV</span>
               </button>
               <button
                 onClick={onExportReport}
-                className="text-xs panel px-2 py-1 hover:opacity-75"
+                className="text-xs panel px-2.5 py-1 hover:opacity-75 flex items-center gap-1.5"
               >
-                ⬇ Report
+                <svg className="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span>Report</span>
               </button>
             </div>
           </div>
