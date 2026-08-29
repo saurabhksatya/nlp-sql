@@ -86,15 +86,27 @@ export function InputPanel({
   return (
     <section
       className="panel p-4 flex flex-col gap-4 max-h-[calc(100vh-5rem)] relative overflow-hidden"
+      style={{
+        background: "var(--panel)",
+        borderColor: "var(--border)",
+        color: "var(--foreground)",
+      }}
       aria-label="Input panel"
     >
       {/* Scrollable Main Area */}
-      <div className="input-panel-scrollbar flex-1 overflow-y-auto space-y-4 pr-1">
-        <div className="dataset-picker p-3">
+      <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+        <div
+          className="p-3 rounded-lg border"
+          style={{
+            background: "var(--surface-subtle)",
+            borderColor: "var(--border)",
+          }}
+        >
           <div className="flex items-center justify-between mb-2">
             <label
               htmlFor="dataset"
-              className="text-xs font-semibold uppercase tracking-wider opacity-70 block"
+              className="text-xs font-bold uppercase tracking-wider block"
+              style={{ color: "var(--muted)" }}
             >
               Choose a dataset
             </label>
@@ -104,7 +116,7 @@ export function InputPanel({
                   type="button"
                   onClick={onOpenCreateModal}
                   title="Create a new custom dataset with tables"
-                  className="text-[11px] px-2 py-0.5 rounded border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 transition-colors font-medium cursor-pointer"
+                  className="text-[11px] px-2 py-0.5 rounded border border-blue-500/40 text-blue-400 hover:bg-blue-500/10 transition-colors font-medium cursor-pointer"
                 >
                   + New
                 </button>
@@ -114,7 +126,7 @@ export function InputPanel({
                   type="button"
                   onClick={onResetDatabase}
                   title="Reset database tables and data to defaults"
-                  className="text-[11px] px-2 py-0.5 rounded border border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors font-medium cursor-pointer"
+                  className="text-[11px] px-2 py-0.5 rounded border border-rose-500/40 text-rose-400 hover:bg-rose-500/10 transition-colors font-medium cursor-pointer"
                 >
                   Reset DB
                 </button>
@@ -133,12 +145,15 @@ export function InputPanel({
         {/* 1. Voice and Natural Language Query Section */}
         <div className="flex flex-col gap-2.5">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold flex items-center gap-1.5 text-sm">
+            <h2
+              className="font-bold flex items-center gap-1.5 text-sm"
+              style={{ color: "var(--foreground)" }}
+            >
               <span>1. Ask by Voice or Natural Language</span>
             </h2>
             {isListening && (
-              <span className="flex items-center gap-1 text-[11px] text-rose-500 font-medium animate-pulse">
-                <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+              <span className="flex items-center gap-1 text-[11px] text-red-500 font-medium animate-pulse">
+                <span className="w-2 h-2 rounded-full bg-red-500"></span>
                 Recording
               </span>
             )}
@@ -168,7 +183,12 @@ export function InputPanel({
               onChange={(event) => onNlInputChange(event.target.value)}
               placeholder='Speak via mic above or type (e.g. "How many customers are there?")'
               rows={2}
-              className="w-full panel p-2.5 pr-8 text-sm resize-y focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full p-2.5 pr-8 text-sm resize-y rounded-lg border focus:outline-none"
+              style={{
+                background: "var(--panel)",
+                borderColor: "var(--border)",
+                color: "var(--foreground)",
+              }}
               aria-label="Natural language input"
             />
             {isSupported && (
@@ -176,11 +196,11 @@ export function InputPanel({
                 type="button"
                 onClick={isListening ? stopListening : handleStartVoice}
                 title={isListening ? "Stop listening" : "Dictate via microphone"}
-                className={`absolute right-2 top-2.5 p-1 rounded-md transition-colors ${
-                  isListening
-                    ? "text-rose-500 bg-rose-500/10 hover:bg-rose-500/20"
-                    : "text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800"
-                }`}
+                className="absolute right-2 top-2.5 p-1 rounded-md transition-colors"
+                style={{
+                  color: isListening ? "#ef4444" : "var(--muted)",
+                  background: isListening ? "rgba(239, 68, 68, 0.15)" : "transparent",
+                }}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -198,13 +218,16 @@ export function InputPanel({
           <button
             onClick={onTranslate}
             disabled={!nlInput.trim() || isTranslating}
-            className="w-full py-2 rounded-lg text-white text-sm font-medium disabled:opacity-40 flex items-center justify-center gap-1.5 transition-opacity cursor-pointer"
-            style={{ background: "var(--accent)" }}
+            className="w-full py-2 rounded-lg text-sm font-semibold disabled:opacity-40 flex items-center justify-center gap-1.5 transition-opacity cursor-pointer shadow-xs"
+            style={{
+              background: "var(--accent-gradient, var(--accent))",
+              color: "var(--accent-foreground)",
+            }}
           >
             {isTranslating ? (
               <>
                 <svg
-                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-current"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -237,11 +260,18 @@ export function InputPanel({
 
           {/* Translation results & interpretation */}
           {nlInfo && (
-            <div className="mt-1 text-xs space-y-1 panel p-2.5 bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-100 dark:border-indigo-900/50">
+            <div
+              className="mt-1 text-xs space-y-1 p-2.5 rounded-lg border"
+              style={{
+                background: "var(--surface-subtle)",
+                borderColor: "var(--border)",
+                color: "var(--foreground)",
+              }}
+            >
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-indigo-700 dark:text-indigo-300">
+                <span className="font-semibold" style={{ color: "var(--foreground)" }}>
                   Confidence:{" "}
-                  <span className="font-mono">
+                  <span className="font-mono font-bold" style={{ color: "var(--accent)" }}>
                     {(nlInfo.confidence * 100).toFixed(0)}%
                   </span>
                 </span>
@@ -249,7 +279,8 @@ export function InputPanel({
                   type="button"
                   onClick={handleReadInterpretation}
                   title="Read interpretation aloud"
-                  className="flex items-center gap-1 text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                  className="flex items-center gap-1 text-[11px] hover:underline cursor-pointer"
+                  style={{ color: "var(--muted)" }}
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
@@ -257,10 +288,10 @@ export function InputPanel({
                   <span>Read aloud</span>
                 </button>
               </div>
-              <p className="opacity-80 text-slate-700 dark:text-slate-300">
+              <p className="opacity-90 leading-relaxed" style={{ color: "var(--foreground)" }}>
                 {nlInfo.interpretation}
               </p>
-              <p className="font-mono opacity-50 text-[10px]">
+              <p className="font-mono opacity-50 text-[10px]" style={{ color: "var(--muted)" }}>
                 Generated by Gemini 2.5 Flash
               </p>
             </div>
@@ -269,18 +300,33 @@ export function InputPanel({
 
         {/* 2. Direct SQL Query Section */}
         <div>
-          <h2 className="font-semibold mb-2 text-sm">2. Or write SQL directly</h2>
+          <h2
+            className="font-bold mb-2 text-sm"
+            style={{ color: "var(--foreground)" }}
+          >
+            2. Or write SQL directly
+          </h2>
           <textarea
             value={sql}
             onChange={(event) => onSqlChange(event.target.value)}
             rows={4}
             spellCheck={false}
-            className="w-full panel p-2 text-sm font-mono resize-y focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="w-full p-2 text-sm font-mono resize-y rounded-lg border focus:outline-none"
+            style={{
+              background: "var(--surface-subtle)",
+              borderColor: "var(--border)",
+              color: "var(--foreground)",
+            }}
             aria-label="SQL query"
           />
           <button
             onClick={onRunQuery}
-            className="mt-2 w-full py-2 rounded-lg text-sm font-medium panel hover:opacity-80 transition-opacity flex items-center justify-center gap-1.5 cursor-pointer"
+            className="mt-2 w-full py-2 rounded-lg text-sm font-semibold border transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90"
+            style={{
+              background: "var(--surface-subtle)",
+              borderColor: "var(--border)",
+              color: "var(--foreground)",
+            }}
           >
             <span>Execute SQL</span>
           </button>
@@ -293,7 +339,12 @@ export function InputPanel({
 
         {/* Sample Inputs */}
         <div>
-          <h2 className="font-semibold mb-2 text-sm">Sample Inputs</h2>
+          <h2
+            className="font-bold mb-2 text-sm"
+            style={{ color: "var(--foreground)" }}
+          >
+            Sample Inputs
+          </h2>
           <ul className="space-y-1.5">
             {examples.map((example) => (
               <li key={example.id}>
@@ -301,10 +352,15 @@ export function InputPanel({
                   onClick={() => {
                     onExampleSelect(example.question, example.sql);
                   }}
-                  className="w-full text-left text-xs panel px-2 py-1.5 hover:opacity-75 transition-opacity cursor-pointer"
+                  className="w-full text-left text-xs p-2.5 rounded-lg border transition-colors cursor-pointer hover:opacity-90"
+                  style={{
+                    background: "var(--panel)",
+                    borderColor: "var(--border)",
+                    color: "var(--foreground)",
+                  }}
                   title={`Expected: ${example.expected}`}
                 >
-                  <span className="opacity-50 mr-1">{example.id}.</span>{" "}
+                  <span className="opacity-50 font-mono mr-1">{example.id}.</span>{" "}
                   {example.question}
                 </button>
               </li>
@@ -314,22 +370,34 @@ export function InputPanel({
 
         {/* History */}
         <div>
-          <h2 className="font-semibold mb-2 text-sm">History</h2>
+          <h2
+            className="font-bold mb-2 text-sm"
+            style={{ color: "var(--foreground)" }}
+          >
+            History
+          </h2>
           {history.length === 0 && (
-            <p className="text-xs opacity-50">No queries yet.</p>
+            <p className="text-xs opacity-50" style={{ color: "var(--muted)" }}>
+              No queries yet.
+            </p>
           )}
           <ul className="space-y-1">
             {history.slice(0, 8).map((item) => (
               <li key={item.id}>
                 <button
                   onClick={() => onSelectHistory(item)}
-                  className="w-full text-left text-xs panel px-2 py-1.5 hover:opacity-75 truncate transition-opacity cursor-pointer"
+                  className="w-full text-left text-xs p-2.5 rounded-lg border truncate transition-colors cursor-pointer hover:opacity-90"
+                  style={{
+                    background: "var(--panel)",
+                    borderColor: "var(--border)",
+                    color: "var(--foreground)",
+                  }}
                 >
-                  <span className="opacity-50">
+                  <span className="opacity-60 font-mono text-[10px]" style={{ color: "var(--muted)" }}>
                     {item.time} &middot; {item.rows} rows
                   </span>
                   <br />
-                  {item.question}
+                  <span className="font-semibold">{item.question}</span>
                 </button>
               </li>
             ))}
@@ -339,15 +407,23 @@ export function InputPanel({
 
       {/* Permanently pinned Guide button at bottom-left */}
       {onOpenGuide && (
-        <div className="pt-2 border-t border-slate-200 dark:border-slate-800 shrink-0 flex items-center justify-between">
+        <div
+          className="pt-2 border-t shrink-0 flex items-center justify-between"
+          style={{ borderColor: "var(--border)" }}
+        >
           <button
             type="button"
             onClick={onOpenGuide}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer hover:opacity-90"
+            style={{
+              background: "var(--surface-subtle)",
+              borderColor: "var(--border)",
+              color: "var(--foreground)",
+            }}
             aria-label="Open user guide and help"
           >
             <svg
-              className="w-4 h-4 text-indigo-600 dark:text-indigo-400"
+              className="w-4 h-4 opacity-80"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

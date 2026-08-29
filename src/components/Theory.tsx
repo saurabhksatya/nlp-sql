@@ -1,46 +1,92 @@
 export function Theory() {
   return (
-    <div className="panel p-4 text-xs space-y-4 leading-relaxed overflow-y-auto max-h-[calc(100vh-8rem)]">
+    <div
+      className="panel p-4 text-xs space-y-4 leading-relaxed overflow-y-auto max-h-[calc(100vh-8rem)]"
+      style={{
+        background: "var(--panel)",
+        borderColor: "var(--border)",
+        color: "var(--foreground)",
+      }}
+    >
       <section>
-        <h2 className="font-bold text-sm mb-1 text-indigo-600 dark:text-indigo-400">
+        <h2 className="font-bold text-sm mb-1.5" style={{ color: "var(--foreground)" }}>
           1. SQL Sublanguages: DQL, DML &amp; DDL
         </h2>
-        <p className="mb-2 opacity-90">
+        <p className="mb-2 opacity-90" style={{ color: "var(--foreground)" }}>
           Structured Query Language (SQL) is the international standard (ISO/IEC 9075) for relational database systems. It is divided into distinct functional sublanguages:
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-          <div className="p-2.5 rounded panel bg-sky-500/10 border-sky-500/20">
-            <h3 className="font-bold text-sky-600 dark:text-sky-400 mb-1">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+          <div
+            className="p-3 rounded-lg border"
+            style={{
+              background: "var(--surface-subtle)",
+              borderColor: "var(--border)",
+            }}
+          >
+            <h3 className="font-bold mb-1" style={{ color: "var(--foreground)" }}>
               DQL (Data Query Language)
             </h3>
-            <p className="text-[11px] opacity-80 mb-1">
+            <p className="text-[11px] opacity-80 mb-2" style={{ color: "var(--foreground)" }}>
               Retrieves and summarizes relation data without modifying storage state.
             </p>
-            <p className="font-mono text-[10px] bg-black/5 dark:bg-white/5 p-1 rounded">
+            <p
+              className="font-mono text-[10px] p-1 rounded border"
+              style={{
+                background: "var(--panel)",
+                borderColor: "var(--border)",
+                color: "var(--accent)",
+              }}
+            >
               SELECT, JOIN, WHERE, GROUP BY, HAVING, ORDER BY
             </p>
           </div>
 
-          <div className="p-2.5 rounded panel bg-amber-500/10 border-amber-500/20">
-            <h3 className="font-bold text-amber-600 dark:text-amber-400 mb-1">
+          <div
+            className="p-3 rounded-lg border"
+            style={{
+              background: "var(--surface-subtle)",
+              borderColor: "var(--border)",
+            }}
+          >
+            <h3 className="font-bold mb-1" style={{ color: "var(--foreground)" }}>
               DML (Data Manipulation)
             </h3>
-            <p className="text-[11px] opacity-80 mb-1">
+            <p className="text-[11px] opacity-80 mb-2" style={{ color: "var(--foreground)" }}>
               Modifies table tuples (inserts, updates, deletes) within transaction boundaries.
             </p>
-            <p className="font-mono text-[10px] bg-black/5 dark:bg-white/5 p-1 rounded">
+            <p
+              className="font-mono text-[10px] p-1 rounded border"
+              style={{
+                background: "var(--panel)",
+                borderColor: "var(--border)",
+                color: "var(--accent)",
+              }}
+            >
               INSERT INTO, UPDATE, DELETE FROM
             </p>
           </div>
 
-          <div className="p-2.5 rounded panel bg-purple-500/10 border-purple-500/20">
-            <h3 className="font-bold text-purple-600 dark:text-purple-400 mb-1">
+          <div
+            className="p-3 rounded-lg border"
+            style={{
+              background: "var(--surface-subtle)",
+              borderColor: "var(--border)",
+            }}
+          >
+            <h3 className="font-bold mb-1" style={{ color: "var(--foreground)" }}>
               DDL (Data Definition)
             </h3>
-            <p className="text-[11px] opacity-80 mb-1">
+            <p className="text-[11px] opacity-80 mb-2" style={{ color: "var(--foreground)" }}>
               Defines, alters, or destroys database relations, schemas, and catalogs.
             </p>
-            <p className="font-mono text-[10px] bg-black/5 dark:bg-white/5 p-1 rounded">
+            <p
+              className="font-mono text-[10px] p-1 rounded border"
+              style={{
+                background: "var(--panel)",
+                borderColor: "var(--border)",
+                color: "var(--accent)",
+              }}
+            >
               CREATE TABLE, ALTER TABLE, DROP TABLE, TRUNCATE
             </p>
           </div>
@@ -48,10 +94,10 @@ export function Theory() {
       </section>
 
       <section>
-        <h2 className="font-bold text-sm mb-1 text-indigo-600 dark:text-indigo-400">
+        <h2 className="font-bold text-sm mb-1.5" style={{ color: "var(--foreground)" }}>
           2. Relational Algebra Foundations
         </h2>
-        <ul className="list-disc list-inside space-y-1 opacity-80 text-[11px]">
+        <ul className="list-disc list-inside space-y-1 opacity-85 text-[11px]" style={{ color: "var(--foreground)" }}>
           <li>
             <strong>Projection π(R):</strong> Selects a subset of attributes (columns) from relation R.
           </li>
@@ -74,10 +120,10 @@ export function Theory() {
       </section>
 
       <section>
-        <h2 className="font-bold text-sm mb-1 text-indigo-600 dark:text-indigo-400">
+        <h2 className="font-bold text-sm mb-1.5" style={{ color: "var(--foreground)" }}>
           3. Relational Integrity Constraints
         </h2>
-        <div className="space-y-1.5 opacity-80 text-[11px]">
+        <div className="space-y-1.5 opacity-85 text-[11px]" style={{ color: "var(--foreground)" }}>
           <p>
             • <strong>Domain Integrity:</strong> Every attribute value must belong to the declared data type (e.g. INTEGER, TEXT, REAL).
           </p>
@@ -91,34 +137,70 @@ export function Theory() {
       </section>
 
       <section>
-        <h2 className="font-bold text-sm mb-1 text-indigo-600 dark:text-indigo-400">
+        <h2 className="font-bold text-sm mb-1.5" style={{ color: "var(--foreground)" }}>
           4. ACID Transaction Properties
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
-          <div className="p-2 rounded bg-black/5 dark:bg-white/5">
+          <div
+            className="p-2.5 rounded-lg border"
+            style={{
+              background: "var(--surface-subtle)",
+              borderColor: "var(--border)",
+              color: "var(--foreground)",
+            }}
+          >
             <strong>Atomicity (A)</strong>
-            <p className="opacity-70 text-[10px] mt-0.5">All-or-nothing execution; failed mutations are rolled back completely.</p>
+            <p className="opacity-70 text-[10px] mt-0.5" style={{ color: "var(--muted)" }}>
+              All-or-nothing execution; failed mutations are rolled back completely.
+            </p>
           </div>
-          <div className="p-2 rounded bg-black/5 dark:bg-white/5">
+          <div
+            className="p-2.5 rounded-lg border"
+            style={{
+              background: "var(--surface-subtle)",
+              borderColor: "var(--border)",
+              color: "var(--foreground)",
+            }}
+          >
             <strong>Consistency (C)</strong>
-            <p className="opacity-70 text-[10px] mt-0.5">Database transitions only between valid states conforming to all schema constraints.</p>
+            <p className="opacity-70 text-[10px] mt-0.5" style={{ color: "var(--muted)" }}>
+              Database transitions only between valid states conforming to all schema constraints.
+            </p>
           </div>
-          <div className="p-2 rounded bg-black/5 dark:bg-white/5">
+          <div
+            className="p-2.5 rounded-lg border"
+            style={{
+              background: "var(--surface-subtle)",
+              borderColor: "var(--border)",
+              color: "var(--foreground)",
+            }}
+          >
             <strong>Isolation (I)</strong>
-            <p className="opacity-70 text-[10px] mt-0.5">Concurrent transactions execute without interfering with one another.</p>
+            <p className="opacity-70 text-[10px] mt-0.5" style={{ color: "var(--muted)" }}>
+              Concurrent transactions execute without interfering with one another.
+            </p>
           </div>
-          <div className="p-2 rounded bg-black/5 dark:bg-white/5">
+          <div
+            className="p-2.5 rounded-lg border"
+            style={{
+              background: "var(--surface-subtle)",
+              borderColor: "var(--border)",
+              color: "var(--foreground)",
+            }}
+          >
             <strong>Durability (D)</strong>
-            <p className="opacity-70 text-[10px] mt-0.5">Once committed, transaction updates persist permanently in storage.</p>
+            <p className="opacity-70 text-[10px] mt-0.5" style={{ color: "var(--muted)" }}>
+              Once committed, transaction updates persist permanently in storage.
+            </p>
           </div>
         </div>
       </section>
 
       <section>
-        <h2 className="font-bold text-sm mb-1 text-indigo-600 dark:text-indigo-400">
+        <h2 className="font-bold text-sm mb-1.5" style={{ color: "var(--foreground)" }}>
           5. Execution Engine Algorithms &amp; Complexity
         </h2>
-        <ul className="list-disc list-inside space-y-1 opacity-80 text-[11px]">
+        <ul className="list-disc list-inside space-y-1 opacity-85 text-[11px]" style={{ color: "var(--foreground)" }}>
           <li>
             <strong>Full Table Scan (FROM):</strong> $O(N)$ sequential scan through in-memory page buffers.
           </li>
@@ -144,10 +226,10 @@ export function Theory() {
       </section>
 
       <section>
-        <h2 className="font-bold text-sm mb-1 text-indigo-600 dark:text-indigo-400">
+        <h2 className="font-bold text-sm mb-1.5" style={{ color: "var(--foreground)" }}>
           6. References &amp; Standards
         </h2>
-        <ul className="list-disc list-inside space-y-1 opacity-80 text-[10px]">
+        <ul className="list-disc list-inside space-y-1 opacity-70 text-[10px]" style={{ color: "var(--muted)" }}>
           <li>
             Silberschatz, Korth &amp; Sudarshan — <em>Database System Concepts</em>, 7th ed., McGraw-Hill.
           </li>

@@ -18,7 +18,11 @@ export const metadata: Metadata = {
     "Interactive teaching tool: translate natural language into SQL, execute it step-by-step, and visualize the relational algebra pipeline.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"
@@ -30,8 +34,23 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                const savedTheme = localStorage.getItem('nlp-sql-theme');
-                if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                let saved = localStorage.getItem('nlp-sql-theme') || 'eclipse';
+                const legacyMap = {
+                  'colorful-dark': 'eclipse',
+                  'blue-dark': 'lazuli',
+                  'blue-light': 'pearl',
+                  'greyscale': 'slate',
+                  'high-contrast': 'volt',
+                  'dark': 'eclipse',
+                  'light': 'pearl'
+                };
+                if (legacyMap[saved]) saved = legacyMap[saved];
+                const validThemes = ['eclipse', 'lazuli', 'pearl', 'slate', 'volt'];
+                const theme = validThemes.includes(saved) ? saved : 'eclipse';
+                
+                document.documentElement.setAttribute('data-theme', theme);
+                document.documentElement.classList.add('theme-' + theme);
+                if (theme !== 'pearl') {
                   document.documentElement.classList.add('dark');
                 } else {
                   document.documentElement.classList.remove('dark');

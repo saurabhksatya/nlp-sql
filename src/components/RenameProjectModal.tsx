@@ -39,24 +39,37 @@ export function RenameProjectModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
       onClick={onClose}
     >
       <div
-        className="panel w-full max-w-md p-5 shadow-2xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-md p-5 shadow-2xl border rounded-xl animate-in fade-in zoom-in-95 duration-150"
+        style={{
+          background: "var(--panel)",
+          borderColor: "var(--border)",
+          color: "var(--foreground)",
+        }}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="rename-project-title"
       >
-        <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-          <h2 id="rename-project-title" className="text-base font-semibold text-slate-900 dark:text-slate-100">
+        <div
+          className="flex items-center justify-between pb-3 border-b"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <h2
+            id="rename-project-title"
+            className="text-base font-bold"
+            style={{ color: "var(--foreground)" }}
+          >
             Rename Project
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-1 rounded-lg transition-colors hover:opacity-75"
+            style={{ color: "var(--muted)" }}
             aria-label="Close dialog"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,7 +82,8 @@ export function RenameProjectModal({
           <div>
             <label
               htmlFor="rename-project-input"
-              className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5"
+              className="block text-xs font-semibold mb-1.5"
+              style={{ color: "var(--foreground)" }}
             >
               New Project Name
             </label>
@@ -79,7 +93,12 @@ export function RenameProjectModal({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 text-sm rounded-lg border focus:outline-none"
+              style={{
+                background: "var(--surface-subtle)",
+                borderColor: "var(--border)",
+                color: "var(--foreground)",
+              }}
               required
             />
           </div>
@@ -88,15 +107,24 @@ export function RenameProjectModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-2 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-300"
+              className="px-3.5 py-2 text-xs font-semibold rounded-lg border transition-colors cursor-pointer hover:opacity-90"
+              style={{
+                background: "var(--surface-subtle)",
+                borderColor: "var(--border)",
+                color: "var(--foreground)",
+              }}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!name.trim()}
-              className="px-4 py-2 text-xs font-medium rounded-lg text-white disabled:opacity-40 transition-opacity"
-              style={{ background: "var(--accent)" }}
+              className="px-4 py-2 text-xs font-semibold rounded-lg disabled:opacity-40 transition-opacity shadow-xs cursor-pointer hover:opacity-90 border"
+              style={{
+                background: "var(--accent-gradient, var(--accent))",
+                color: "var(--accent-foreground)",
+                borderColor: "var(--accent)",
+              }}
             >
               Rename
             </button>

@@ -1,19 +1,123 @@
 @import "tailwindcss";
 
-:root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --panel: #ffffff;
-  --border: #e2e8f0;
-  --accent: #4f46e5;
+/* =========================================================================
+   THEME DESIGN SYSTEM (Eclipse, Lazuli, Pearl, Slate, Volt)
+   ========================================================================= */
+
+/* 1. Eclipse (Default Colorful Dark) */
+:root,
+html[data-theme="eclipse"],
+.theme-eclipse {
+  --background: #09090b;
+  --foreground: #f4f4f5;
+  --panel: #111116;
+  --panel-hover: #181820;
+  --surface-subtle: #1a1a24;
+  --surface-hover: #262636;
+  --border: #282834;
+  --accent: #7c3aed;
+  --accent-gradient: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+  --accent-foreground: #ffffff;
+  --accent-subtle: #2e1065;
+  --muted: #a1a1b0;
+  --scrollbar-thumb-from: #8b5cf6;
+  --scrollbar-thumb-to: #6366f1;
+  --scrollbar-thumb-hover: #a78bfa;
 }
 
-.dark {
+/* 2. Lazuli (Original Blue Dark) */
+html[data-theme="lazuli"],
+.theme-lazuli {
   --background: #0b1120;
   --foreground: #e2e8f0;
   --panel: #111a2e;
+  --panel-hover: #18233d;
+  --surface-subtle: #162238;
+  --surface-hover: #1e2f4d;
   --border: #1e293b;
-  --accent: #818cf8;
+  --accent: #3b82f6;
+  --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+  --accent-foreground: #ffffff;
+  --accent-subtle: #1e1b4b;
+  --muted: #94a3b8;
+  --scrollbar-thumb-from: #3b82f6;
+  --scrollbar-thumb-to: #6366f1;
+  --scrollbar-thumb-hover: #60a5fa;
+}
+
+/* 3. Pearl (Original Blue-White Light) */
+html[data-theme="pearl"],
+.theme-pearl {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --panel: #ffffff;
+  --panel-hover: #f1f5f9;
+  --surface-subtle: #f1f5f9;
+  --surface-hover: #e2e8f0;
+  --border: #cbd5e1;
+  --accent: #4f46e5;
+  --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+  --accent-foreground: #ffffff;
+  --accent-subtle: #eef2ff;
+  --muted: #475569;
+  --scrollbar-thumb-from: #818cf8;
+  --scrollbar-thumb-to: #4f46e5;
+  --scrollbar-thumb-hover: #4338ca;
+}
+
+/* 4. Slate (Monochrome Greyscale Dark) */
+html[data-theme="slate"],
+.theme-slate {
+  --background: #09090b;
+  --foreground: #f4f4f5;
+  --panel: #121215;
+  --panel-hover: #1c1c20;
+  --surface-subtle: #18181c;
+  --surface-hover: #24242c;
+  --border: #27272f;
+  --accent: #ffffff;
+  --accent-gradient: linear-gradient(135deg, #ffffff 0%, #e4e4e7 100%);
+  --accent-foreground: #09090b;
+  --accent-subtle: #27272a;
+  --muted: #a1a1aa;
+  --scrollbar-thumb-from: #52525b;
+  --scrollbar-thumb-to: #3f3f46;
+  --scrollbar-thumb-hover: #71717a;
+}
+
+/* 5. Volt (High Contrast Black, Yellow, Red, Green) */
+html[data-theme="volt"],
+.theme-volt {
+  --background: #000000;
+  --foreground: #ffffff;
+  --panel: #050505;
+  --panel-hover: #141414;
+  --surface-subtle: #121200;
+  --surface-hover: #222200;
+  --border: #ffff00;
+  --accent: #ffff00;
+  --accent-gradient: linear-gradient(135deg, #ffff00 0%, #facc15 100%);
+  --accent-foreground: #000000;
+  --accent-subtle: #282800;
+  --muted: #ffff00;
+  --scrollbar-thumb-from: #ffff00;
+  --scrollbar-thumb-to: #facc15;
+  --scrollbar-thumb-hover: #fef08a;
+}
+
+/* High contrast specific style overrides */
+.theme-volt .panel {
+  border-width: 1.5px;
+  border-color: #ffff00;
+}
+
+.theme-volt button {
+  font-weight: 600;
+}
+
+.theme-volt pre,
+.theme-volt code {
+  border-color: #ffff00;
 }
 
 @theme inline {
@@ -29,7 +133,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  /* overflow-y: hidden; */
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
 button {
@@ -41,64 +145,39 @@ button:disabled {
 }
 
 .panel {
-  scrollbar-color: #8b5cf6 color-mix(in srgb, var(--border) 55%, transparent);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  scrollbar-color: var(--scrollbar-thumb-from) color-mix(in srgb, var(--border) 55%, transparent);
   scrollbar-width: thin;
+  transition: background-color 150ms ease, border-color 150ms ease;
 }
 
 .panel::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 .panel::-webkit-scrollbar-track {
-  background: color-mix(in srgb, var(--border) 45%, transparent);
+  background: color-mix(in srgb, var(--border) 35%, transparent);
   border-radius: 999px;
-  margin: 0.75rem 0;
+  margin: 0.5rem 0;
 }
 
 .panel::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #a78bfa, #7c3aed);
-  border: 3px solid transparent;
+  background: linear-gradient(180deg, var(--scrollbar-thumb-from), var(--scrollbar-thumb-to));
+  border: 2px solid transparent;
   border-radius: 999px;
   background-clip: padding-box;
-  min-height: 56px;
+  min-height: 48px;
 }
 
 .panel::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #c4b5fd, #8b5cf6);
-  background-clip: padding-box;
-}
-
-.panel::-webkit-scrollbar-button {
-  background-color: #9ca3af;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 6px 4px;
-  display: block;
-  height: 10px;
-}
-
-.panel::-webkit-scrollbar-button:vertical:decrement {
-  background-image:
-    linear-gradient(135deg, transparent 50%, #4b5563 50%),
-    linear-gradient(45deg, #4b5563 50%, transparent 50%);
-  background-position:
-    calc(50% - 3px) center,
-    calc(50% + 3px) center;
-  background-size: 6px 6px;
-}
-
-.panel::-webkit-scrollbar-button:vertical:increment {
-  background-image:
-    linear-gradient(135deg, #4b5563 50%, transparent 50%),
-    linear-gradient(45deg, transparent 50%, #4b5563 50%);
-  background-position:
-    calc(50% - 3px) center,
-    calc(50% + 3px) center;
-  background-size: 6px 6px;
+  background: var(--scrollbar-thumb-hover);
 }
 
 .dataset-select {
-  background: color-mix(in srgb, var(--background) 72%, var(--panel));
+  background: var(--surface-subtle);
   border: 1px solid var(--border);
   color: var(--foreground);
   cursor: pointer;
@@ -111,18 +190,18 @@ button:disabled {
 
 .dataset-select:hover {
   border-color: var(--accent);
-  background: var(--panel);
+  background: var(--panel-hover);
 }
 
 .dataset-select:focus-visible {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .dataset-menu {
   background: var(--panel);
   border: 1px solid var(--border);
-  box-shadow: 0 12px 28px rgb(15 23 42 / 18%);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 35%);
 }
 
 .dataset-option {
@@ -135,12 +214,13 @@ button:disabled {
 
 .dataset-option:hover,
 .dataset-option:focus-visible {
-  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+  background: var(--surface-hover);
   outline: none;
 }
 
 .dataset-option-selected {
-  background: color-mix(in srgb, var(--accent) 16%, var(--panel));
+  background: var(--surface-subtle);
+  border-left: 3px solid var(--accent);
 }
 
 .dataset-chevron-open {
@@ -148,21 +228,16 @@ button:disabled {
 }
 
 .dataset-chevron {
-  border-bottom: 2px solid var(--accent);
-  border-right: 2px solid var(--accent);
-  height: 0.5rem;
+  border-bottom: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  height: 0.45rem;
   pointer-events: none;
   position: absolute;
   right: 0.9rem;
   top: 50%;
   transform: translateY(-65%) rotate(45deg);
-  width: 0.5rem;
-}
-
-.panel {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
+  width: 0.45rem;
+  opacity: 0.7;
 }
 
 @keyframes soundwave {

@@ -75,9 +75,16 @@ export function DatasetDropdown({
         onKeyDown={handleKeyDown}
       >
         <span className="flex items-center gap-2 truncate">
-          <span>{selectedDataset?.name}</span>
+          <span style={{ color: "var(--foreground)" }}>{selectedDataset?.name}</span>
           {selectedDataset?.isCustom && (
-            <span className="text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-semibold uppercase">
+            <span
+              className="text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase border"
+              style={{
+                background: "var(--surface-hover)",
+                borderColor: "var(--border)",
+                color: "var(--foreground)",
+              }}
+            >
               Custom
             </span>
           )}
@@ -93,6 +100,11 @@ export function DatasetDropdown({
           role="listbox"
           aria-label="Datasets"
           className="dataset-menu absolute z-20 mt-2 w-full overflow-hidden rounded-xl p-1.5 max-h-80 overflow-y-auto"
+          style={{
+            background: "var(--panel)",
+            borderColor: "var(--border)",
+            color: "var(--foreground)",
+          }}
         >
           {datasets.map((dataset) => {
             const selected = dataset.id === selectedDataset?.id;
@@ -107,20 +119,33 @@ export function DatasetDropdown({
                   type="button"
                   role="option"
                   aria-selected={selected}
-                  className="flex-1 text-left"
+                  className="flex-1 text-left cursor-pointer"
                   onClick={() => selectDataset(dataset.id)}
                 >
                   <div className="flex items-center gap-1.5">
-                    <span className="block text-sm font-semibold">
+                    <span
+                      className="block text-sm font-semibold"
+                      style={{ color: "var(--foreground)" }}
+                    >
                       {dataset.name}
                     </span>
                     {dataset.isCustom && (
-                      <span className="text-[9px] px-1 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold uppercase">
+                      <span
+                        className="text-[9px] px-1.5 py-0.2 rounded font-bold uppercase border"
+                        style={{
+                          background: "var(--surface-hover)",
+                          borderColor: "var(--border)",
+                          color: "var(--foreground)",
+                        }}
+                      >
                         Custom
                       </span>
                     )}
                   </div>
-                  <span className="mt-0.5 block text-xs opacity-60 line-clamp-1">
+                  <span
+                    className="mt-0.5 block text-xs opacity-70 line-clamp-1"
+                    style={{ color: "var(--muted)" }}
+                  >
                     {dataset.description}
                   </span>
                 </button>
@@ -128,7 +153,7 @@ export function DatasetDropdown({
                   <button
                     type="button"
                     title="Delete custom dataset"
-                    className="p-1 text-xs opacity-50 hover:opacity-100 hover:text-rose-500 ml-2"
+                    className="p-1 text-xs opacity-60 hover:opacity-100 hover:text-red-500 ml-2 cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
                       onDeleteDataset(dataset.id);
@@ -142,10 +167,14 @@ export function DatasetDropdown({
           })}
 
           {onOpenCreateModal && (
-            <div className="pt-1 mt-1 border-t">
+            <div
+              className="pt-1 mt-1 border-t"
+              style={{ borderColor: "var(--border)" }}
+            >
               <button
                 type="button"
-                className="dataset-option w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5 hover:bg-indigo-500/10"
+                className="dataset-option w-full rounded-lg px-3 py-2 text-left text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                style={{ color: "var(--foreground)" }}
                 onClick={() => {
                   setOpen(false);
                   onOpenCreateModal();

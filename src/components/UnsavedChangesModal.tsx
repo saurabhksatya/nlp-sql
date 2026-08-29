@@ -17,24 +17,37 @@ export function UnsavedChangesModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
       onClick={onCancel}
     >
       <div
-        className="panel w-full max-w-md p-5 shadow-2xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-md p-5 shadow-2xl border rounded-xl animate-in fade-in zoom-in-95 duration-150"
+        style={{
+          background: "var(--panel)",
+          borderColor: "var(--border)",
+          color: "var(--foreground)",
+        }}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="unsaved-changes-title"
       >
-        <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-          <h2 id="unsaved-changes-title" className="text-base font-semibold text-slate-900 dark:text-slate-100">
+        <div
+          className="flex items-center justify-between pb-3 border-b"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <h2
+            id="unsaved-changes-title"
+            className="text-base font-bold"
+            style={{ color: "var(--foreground)" }}
+          >
             Unsaved Changes
           </h2>
           <button
             type="button"
             onClick={onCancel}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-1 rounded-lg transition-colors hover:opacity-75"
+            style={{ color: "var(--muted)" }}
             aria-label="Close dialog"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -44,8 +57,8 @@ export function UnsavedChangesModal({
         </div>
 
         <div className="mt-4 mb-6">
-          <p className="text-sm text-slate-600 dark:text-slate-300">
-            This project has unsaved changes.
+          <p className="text-sm opacity-90" style={{ color: "var(--foreground)" }}>
+            This project has unsaved changes. What would you like to do before starting a new project?
           </p>
         </div>
 
@@ -53,22 +66,31 @@ export function UnsavedChangesModal({
           <button
             type="button"
             onClick={onCancel}
-            className="px-3.5 py-2 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-300"
+            className="px-3.5 py-2 text-xs font-semibold rounded-lg border transition-colors cursor-pointer hover:opacity-90"
+            style={{
+              background: "var(--surface-subtle)",
+              borderColor: "var(--border)",
+              color: "var(--foreground)",
+            }}
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onDontSave}
-            className="px-3.5 py-2 text-xs font-medium rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+            className="px-3.5 py-2 text-xs font-semibold rounded-lg border border-red-500/40 text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
           >
             Don&apos;t Save
           </button>
           <button
             type="button"
             onClick={onSaveAndNew}
-            className="px-4 py-2 text-xs font-medium rounded-lg text-white transition-opacity"
-            style={{ background: "var(--accent)" }}
+            className="px-4 py-2 text-xs font-semibold rounded-lg transition-opacity shadow-xs cursor-pointer hover:opacity-90 border"
+            style={{
+              background: "var(--accent-gradient, var(--accent))",
+              color: "var(--accent-foreground)",
+              borderColor: "var(--accent)",
+            }}
           >
             Save &amp; New
           </button>

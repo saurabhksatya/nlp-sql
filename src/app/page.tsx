@@ -5,7 +5,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { ExplanationPanel } from "@/components/ExplanationPanel";
 import { InputPanel } from "@/components/InputPanel";
 import { DatasetModal } from "@/components/DatasetModal";
-import type { HistoryItem, Tab } from "@/components/nlSqlTypes";
+import type { HistoryItem, Tab, ThemeId } from "@/components/nlSqlTypes";
 import { VisualizationPanel } from "@/components/VisualizationPanel";
 import { ProjectsPanel } from "@/components/ProjectsPanel";
 import { SaveProjectModal } from "@/components/SaveProjectModal";
@@ -32,7 +32,7 @@ import { speakText } from "@/lib/useSpeechRecognition";
 const CUSTOM_DATASETS_KEY = "nlp-sql-custom-datasets";
 
 export default function Home() {
-  const [dark, setDark] = useState(false);
+  const [theme, setTheme] = useState<ThemeId>("eclipse");
   const [customDatasets, setCustomDatasets] = useState<Dataset[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = useState("ecommerce");
   const [isDatasetModalOpen, setIsDatasetModalOpen] = useState(false);
@@ -97,30 +97,62 @@ export default function Home() {
   const [pendingNewAfterSave, setPendingNewAfterSave] = useState(false);
   const [mobileTab, setMobileTab] = useState<"input" | "canvas" | "tools">("canvas");
 
-  // Load theme from localStorage
-  useEffect(() => {
-    try {
-      const savedTheme = localStorage.getItem("nlp-sql-theme");
-      const isDark =
-        savedTheme !== null
-          ? savedTheme === "dark"
-          : document.documentElement.classList.contains("dark") ||
-            window.matchMedia("(prefers-color-scheme: dark)").matches;
-      setDark(isDark);
-      document.documentElement.classList.toggle("dark", isDark);
-    } catch {}
+  const isDark = useMemo(() => theme !== "pearl", [theme]);
+
+  const applyThemeToDOM = useCallback((nextTheme: ThemeId) => {
+    const isThemeDark = nextTheme !== "pearl";
+    document.documentElement.setAttribute("data-theme", nextTheme);
+    const allThemeClasses = [
+      "theme-eclipse",
+      "theme-lazuli",
+      "theme-pearl",
+      "theme-slate",
+      "theme-volt",
+      "theme-colorful-dark",
+      "theme-blue-dark",
+      "theme-blue-light",
+      "theme-greyscale",
+      "theme-high-contrast",
+    ];
+    document.documentElement.classList.remove(...allThemeClasses);
+    document.documentElement.classList.add(`theme-${nextTheme}`);
+    document.documentElement.classList.toggle("dark", isThemeDark);
   }, []);
 
-  const toggleDark = useCallback(() => {
-    setDark((previous) => {
-      const next = !previous;
-      document.documentElement.classList.toggle("dark", next);
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    try {
+      let savedTheme = localStorage.getItem("nlp-sql-theme") || "eclipse";
+      const legacyMap: Record<string, ThemeId> = {
+        "colorful-dark": "eclipse",
+        "blue-dark": "lazuli",
+        "blue-light": "pearl",
+        "greyscale": "slate",
+        "high-contrast": "volt",
+        "dark": "eclipse",
+        "light": "pearl",
+      };
+      if (legacyMap[savedTheme]) savedTheme = legacyMap[savedTheme];
+      const valid: ThemeId[] = ["eclipse", "lazuli", "pearl", "slate", "volt"];
+      const activeTheme = valid.includes(savedTheme as ThemeId)
+        ? (savedTheme as ThemeId)
+        : "eclipse";
+      setTheme(activeTheme);
+      applyThemeToDOM(activeTheme);
+    } catch {}
+  }, [applyThemeToDOM]);
+
+  const handleThemeChange = useCallback(
+    (nextTheme: ThemeId) => {
+      setTheme(nextTheme);
+      applyThemeToDOM(nextTheme);
       try {
-        localStorage.setItem("nlp-sql-theme", next ? "dark" : "light");
+        localStorage.setItem("nlp-sql-theme", nextTheme);
       } catch {}
-      return next;
-    });
-  }, []);
+    },
+    [applyThemeToDOM],
+  );
+
 
   // Load history, custom datasets, & saved projects from localStorage on mount
   useEffect(() => {
@@ -621,8 +653,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col pb-16 lg:pb-0">
-      {/* Current Top Bar Unchanged */}
-      <AppHeader dark={dark} onToggleDark={toggleDark} />
+      {/* Top Bar with Collapsible Theme Selector */}
+      <AppHeader theme={theme} onThemeChange={handleThemeChange} />
 
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-[320px_1fr_340px] gap-4 p-4">
         {/* Left Sidebar: Input Panel with single Guide button at bottom-left */}
@@ -651,6 +683,7 @@ export default function Home() {
             voiceFeedback={voiceFeedback}
             onToggleVoiceFeedback={setVoiceFeedback}
             onOpenGuide={() => setIsGuideModalOpen(true)}
+            theme={theme}
           />
         </div>
 
@@ -677,7 +710,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={handleSaveProjectClick}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                 title={hasUnsavedChanges ? "Save current changes" : "Workspace is up to date"}
               >
                 <svg className="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -685,7 +718,7 @@ export default function Home() {
                 </svg>
                 <span>Save</span>
                 {hasUnsavedChanges && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-500" />
                 )}
               </button>
             </div>
@@ -707,7 +740,8 @@ export default function Home() {
             sql={sql}
             mermaidSource={mermaidSource}
             schema={activeSchema}
-            dark={dark}
+            dark={isDark}
+            theme={theme}
           />
         </div>
 
@@ -719,17 +753,17 @@ export default function Home() {
 
       {/* Mobile-Optimized Bottom Navigation Bar */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-3 py-2 flex items-center justify-between shadow-lg"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-t border-zinc-200 dark:border-zinc-800 px-3 py-2 flex items-center justify-between shadow-lg"
         aria-label="Mobile bottom navigation"
       >
         {/* Guide button at bottom-left */}
         <button
           type="button"
           onClick={() => setIsGuideModalOpen(true)}
-          className="flex flex-col items-center justify-center gap-1 px-3 py-1 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          className="flex flex-col items-center justify-center gap-1 px-3 py-1 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
           aria-label="Open user guide"
         >
-          <svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-zinc-900 dark:text-zinc-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
           </svg>
           <span className="text-[11px] font-medium">Guide</span>
@@ -740,10 +774,10 @@ export default function Home() {
           <button
             type="button"
             onClick={() => setProjectsOpen((prev) => !prev)}
-            className="flex flex-col items-center justify-center gap-1 px-3 py-1 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="flex flex-col items-center justify-center gap-1 px-3 py-1 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
             aria-label="Toggle projects list"
           >
-            <svg className="w-5 h-5 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
             </svg>
             <span className="text-[11px] font-medium">Projects</span>
@@ -752,7 +786,7 @@ export default function Home() {
           <button
             type="button"
             onClick={handleSaveProjectClick}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-opacity cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white dark:text-black transition-opacity cursor-pointer shadow-xs"
             style={{ background: "var(--accent)" }}
             aria-label="Save project"
           >
@@ -770,14 +804,14 @@ export default function Home() {
             onClick={() =>
               setMobileTab((prev) => (prev === "tools" ? "canvas" : "tools"))
             }
-            className={`flex flex-col items-center justify-center gap-1 px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
-              mobileTab === "tools"
-                ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50"
-                : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-            }`}
+            className="flex flex-col items-center justify-center gap-1 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+            style={{
+              background: mobileTab === "tools" ? "var(--surface-hover)" : "transparent",
+              color: "var(--foreground)",
+            }}
             aria-label="Toggle info and tools"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="text-[11px] font-medium">Info &amp; Tools</span>
@@ -788,14 +822,14 @@ export default function Home() {
             onClick={() =>
               setMobileTab((prev) => (prev === "input" ? "canvas" : "input"))
             }
-            className={`flex flex-col items-center justify-center gap-1 px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
-              mobileTab === "input"
-                ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50"
-                : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-            }`}
+            className="flex flex-col items-center justify-center gap-1 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+            style={{
+              background: mobileTab === "input" ? "var(--surface-hover)" : "transparent",
+              color: "var(--foreground)",
+            }}
             aria-label="Toggle input panel"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
             <span className="text-[11px] font-medium">Input</span>
@@ -808,7 +842,7 @@ export default function Home() {
         isOpen={isDatasetModalOpen}
         onClose={() => setIsDatasetModalOpen(false)}
         onCreateDataset={handleCreateDataset}
-        dark={dark}
+        dark={isDark}
       />
 
       <SaveProjectModal

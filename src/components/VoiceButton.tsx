@@ -39,14 +39,21 @@ export function VoiceButton({
 
   if (!isSupported) {
     return (
-      <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs">
+      <div
+        className="p-2.5 rounded-lg border text-xs"
+        style={{
+          background: "var(--surface-subtle)",
+          borderColor: "var(--border)",
+          color: "var(--foreground)",
+        }}
+      >
         <p className="font-semibold flex items-center gap-1.5">
           <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <span>Audio recording unavailable</span>
         </p>
-        <p className="mt-0.5 opacity-80">
+        <p className="mt-0.5 opacity-80" style={{ color: "var(--muted)" }}>
           Your browser does not permit microphone access.
         </p>
       </div>
@@ -60,13 +67,21 @@ export function VoiceButton({
           type="button"
           onClick={isListening ? onStopListening : onStartListening}
           disabled={isTranslating}
-          className={`relative flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm ${
+          className={`relative flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer shadow-xs ${
             isListening
-              ? "bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/20"
+              ? "bg-red-600 hover:bg-red-700 text-white shadow-red-600/20"
               : isTranslating
-                ? "bg-indigo-600/70 text-white cursor-wait"
-                : "bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white"
+                ? "bg-zinc-800 text-white cursor-wait opacity-75"
+                : "hover:opacity-95 shadow-md"
           }`}
+          style={
+            !isListening && !isTranslating
+              ? {
+                  background: "var(--accent-gradient, var(--accent))",
+                  color: "var(--accent-foreground)",
+                }
+              : undefined
+          }
           aria-label={isListening ? "Stop listening" : "Speak to SQL"}
         >
           {isListening ? (
@@ -107,7 +122,7 @@ export function VoiceButton({
           ) : isTranslating ? (
             <>
               <svg
-                className="animate-spin -ml-1 mr-1 h-4 w-4 text-white"
+                className="animate-spin -ml-1 mr-1 h-4 w-4 text-current"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -147,17 +162,24 @@ export function VoiceButton({
 
       {/* Real-time live speech feedback container */}
       {isListening && (
-        <div className="p-2.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-xs animate-in fade-in duration-200">
-          <div className="flex items-center justify-between font-medium text-indigo-700 dark:text-indigo-300 mb-1">
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+        <div
+          className="p-2.5 rounded-lg border text-xs animate-in fade-in duration-200"
+          style={{
+            background: "var(--surface-subtle)",
+            borderColor: "var(--border)",
+            color: "var(--foreground)",
+          }}
+        >
+          <div className="flex items-center justify-between font-medium mb-1">
+            <span className="flex items-center gap-1.5 text-red-500 font-semibold">
+              <span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
               Recording Audio
             </span>
-            <span className="text-[10px] opacity-70">
+            <span className="text-[10px]" style={{ color: "var(--muted)" }}>
               {autoExecute ? "Translates when stopped" : "Dictation mode"}
             </span>
           </div>
-          <p className="italic text-slate-700 dark:text-slate-200 min-h-[1.25rem]">
+          <p className="italic min-h-[1.25rem] opacity-90" style={{ color: "var(--foreground)" }}>
             {currentLiveSpeech ||
               "Listening to your voice... Speak your database query now."}
           </p>
@@ -165,16 +187,20 @@ export function VoiceButton({
       )}
 
       {/* Voice Controls: Auto Execute & Text-to-Speech checkboxes */}
-      <div className="flex flex-wrap items-center justify-between text-[11px] opacity-80 px-1 gap-2">
+      <div
+        className="flex flex-wrap items-center justify-between text-[11px] px-1 gap-2"
+        style={{ color: "var(--muted)" }}
+      >
         {onToggleAutoExecute && (
           <label className="flex items-center gap-1.5 cursor-pointer select-none hover:opacity-100">
             <input
               type="checkbox"
               checked={autoExecute}
               onChange={(e) => onToggleAutoExecute(e.target.checked)}
-              className="accent-indigo-600 rounded"
+              className="rounded"
+              style={{ accentColor: "var(--accent)" }}
             />
-            <span>Auto-Translate on stop</span>
+            <span style={{ color: "var(--foreground)" }}>Auto-Translate on stop</span>
           </label>
         )}
         {onToggleVoiceFeedback && (
@@ -183,17 +209,24 @@ export function VoiceButton({
               type="checkbox"
               checked={voiceFeedback}
               onChange={(e) => onToggleVoiceFeedback(e.target.checked)}
-              className="accent-indigo-600 rounded"
+              className="rounded"
+              style={{ accentColor: "var(--accent)" }}
             />
-            <span>Read SQL summary</span>
+            <span style={{ color: "var(--foreground)" }}>Read SQL summary</span>
           </label>
         )}
       </div>
 
-      {/* Error alert if any permission or recording error occurred */}
       {error && (
-        <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs">
-          <p>{error}</p>
+        <div className="text-xs text-red-500 p-2 rounded-md bg-red-500/10 border border-red-500/30 flex items-center justify-between">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={onStartListening}
+            className="text-[11px] underline font-medium hover:text-red-400 cursor-pointer"
+          >
+            Retry
+          </button>
         </div>
       )}
     </div>

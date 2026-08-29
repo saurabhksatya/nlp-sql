@@ -52,24 +52,47 @@ export function ExplanationPanel({
   return (
     <aside
       className="panel p-4 overflow-y-auto max-h-[calc(100vh-5rem)]"
+      style={{
+        background: "var(--panel)",
+        borderColor: "var(--border)",
+        color: "var(--foreground)",
+      }}
       aria-label="Explanation panel"
     >
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="font-semibold text-sm">Execution Theory & Algebra</h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-semibold text-sm" style={{ color: "var(--foreground)" }}>
+          Execution Theory &amp; Algebra
+        </h2>
         {lastResult && (
-          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/5">
+          <span
+            className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border"
+            style={{
+              background: "var(--surface-subtle)",
+              borderColor: "var(--border)",
+              color: "var(--foreground)",
+            }}
+          >
             {lastResult.statementType}
           </span>
         )}
       </div>
 
       {!current && !error && (
-        <div className="space-y-2 text-xs opacity-75">
-          <p>
+        <div className="space-y-3 text-xs opacity-90">
+          <p style={{ color: "var(--foreground)" }}>
             Run any SQL statement to inspect its step-by-step pipeline execution, relational algebra notation, and complexity metrics.
           </p>
-          <div className="p-2.5 rounded bg-black/5 dark:bg-white/5 space-y-1 text-[11px]">
-            <p className="font-semibold">Supported Command Families:</p>
+          <div
+            className="p-3 rounded-lg border space-y-1.5 text-[11px]"
+            style={{
+              background: "var(--surface-subtle)",
+              borderColor: "var(--border)",
+              color: "var(--foreground)",
+            }}
+          >
+            <p className="font-bold" style={{ color: "var(--foreground)" }}>
+              Supported Command Families:
+            </p>
             <p>• <strong>DQL:</strong> SELECT, JOIN, WHERE, GROUP BY, HAVING, ORDER BY, LIMIT</p>
             <p>• <strong>DML:</strong> INSERT INTO, UPDATE, DELETE FROM</p>
             <p>• <strong>DDL:</strong> CREATE TABLE, ALTER TABLE, DROP TABLE, TRUNCATE</p>
@@ -78,12 +101,12 @@ export function ExplanationPanel({
       )}
 
       {error && (
-        <div className="text-xs space-y-1.5">
-          <p className="text-rose-500 font-bold">Execution Failed</p>
-          <p className="opacity-80 font-mono bg-rose-500/10 p-2 rounded text-rose-600 dark:text-rose-400">
+        <div className="text-xs space-y-2">
+          <p className="font-bold text-red-500">Execution Failed</p>
+          <p className="font-mono p-2.5 rounded-lg border bg-red-500/10 border-red-500/30 text-red-500">
             {error}
           </p>
-          <p className="opacity-60 text-[11px] mt-2">
+          <p className="text-[11px] opacity-70" style={{ color: "var(--muted)" }}>
             Verify table names, column types, and SQL syntax against the active Database Schema.
           </p>
         </div>
@@ -92,19 +115,43 @@ export function ExplanationPanel({
       {current && (
         <div className="space-y-3 text-xs">
           <div>
-            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-mono text-white bg-slate-600">
+            <span
+              className="inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold border"
+              style={{
+                background: "var(--surface-subtle)",
+                borderColor: "var(--border)",
+                color: "var(--foreground)",
+              }}
+            >
               {current.stage}
             </span>
-            <h3 className="font-semibold text-sm mt-1.5">{current.title}</h3>
+            <h3
+              className="font-bold text-sm mt-1.5"
+              style={{ color: "var(--foreground)" }}
+            >
+              {current.title}
+            </h3>
           </div>
 
           <div className="space-y-2">
-            <p className="leading-relaxed">{current.detail}</p>
-            <p className="opacity-70 text-[11px] italic bg-black/5 dark:bg-white/5 p-2 rounded">
-              {NOTES[current.stage] ?? "Database operation executed successfully."}
+            <p className="leading-relaxed" style={{ color: "var(--foreground)" }}>
+              {current.detail}
             </p>
-            <p className="text-[11px] font-mono">
-              Working rows after this stage: <strong>{current.rowCount}</strong>
+            <div
+              className="p-2.5 rounded-lg border text-xs leading-relaxed"
+              style={{
+                background: "var(--surface-subtle)",
+                borderColor: "var(--border)",
+                color: "var(--foreground)",
+              }}
+            >
+              <p className="italic opacity-90">
+                {NOTES[current.stage] ?? "Database operation executed successfully."}
+              </p>
+            </div>
+            <p className="text-[11px] font-mono" style={{ color: "var(--foreground)" }}>
+              Working rows after this stage:{" "}
+              <strong style={{ color: "var(--accent)" }}>{current.rowCount}</strong>
             </p>
           </div>
 
@@ -112,12 +159,22 @@ export function ExplanationPanel({
             className="border-t pt-3"
             style={{ borderColor: "var(--border)" }}
           >
-            <h4 className="text-[10px] font-semibold uppercase opacity-60 mb-1 tracking-wider">
+            <h4
+              className="text-[10px] font-bold uppercase mb-1.5 tracking-wider"
+              style={{ color: "var(--muted)" }}
+            >
               Relational Notation / Semantics
             </h4>
-            <p className="font-mono text-xs text-indigo-600 dark:text-indigo-400">
+            <div
+              className="p-2 rounded-lg font-mono text-xs font-semibold border"
+              style={{
+                background: "var(--surface-subtle)",
+                borderColor: "var(--border)",
+                color: "var(--foreground)",
+              }}
+            >
               {algebraFor(current.stage, lastResult?.command)}
-            </p>
+            </div>
           </div>
         </div>
       )}

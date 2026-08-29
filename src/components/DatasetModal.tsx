@@ -283,18 +283,31 @@ export function DatasetModal({
       role="dialog"
       aria-modal="true"
     >
-      <div className="panel max-w-3xl w-full max-h-[90vh] flex flex-col rounded-xl shadow-2xl overflow-hidden border">
+      <div
+        className="max-w-3xl w-full max-h-[90vh] flex flex-col rounded-xl shadow-2xl overflow-hidden border"
+        style={{
+          background: "var(--panel)",
+          borderColor: "var(--border)",
+          color: "var(--foreground)",
+        }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b">
+        <div
+          className="flex items-center justify-between px-5 py-4 border-b"
+          style={{ borderColor: "var(--border)" }}
+        >
           <div>
-            <h2 className="text-lg font-bold">Create New Dataset</h2>
-            <p className="text-xs opacity-70">
+            <h2 className="text-lg font-bold" style={{ color: "var(--foreground)" }}>
+              Create New Dataset
+            </h2>
+            <p className="text-xs opacity-75" style={{ color: "var(--muted)" }}>
               Build your custom database tables with schema definitions, primary keys, and relationships.
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-sm opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
+            className="p-1 rounded-lg text-sm transition-opacity hover:opacity-75"
+            style={{ color: "var(--muted)" }}
             aria-label="Close"
           >
             ✕
@@ -304,7 +317,7 @@ export function DatasetModal({
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {error && (
-            <div className="p-3 text-xs bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 rounded-lg">
+            <div className="p-3 text-xs bg-rose-500/10 border border-rose-500/30 text-rose-500 rounded-lg">
               {error}
             </div>
           )}
@@ -312,7 +325,10 @@ export function DatasetModal({
           {/* Dataset Name and Description */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">
+              <label
+                className="block text-xs font-semibold uppercase tracking-wider mb-1"
+                style={{ color: "var(--muted)" }}
+              >
                 Dataset Name *
               </label>
               <input
@@ -320,11 +336,19 @@ export function DatasetModal({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Bookstore, Healthcare DB"
-                className="w-full panel p-2 text-sm rounded-lg border focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full p-2 text-sm rounded-lg border focus:outline-none"
+                style={{
+                  background: "var(--surface-subtle)",
+                  borderColor: "var(--border)",
+                  color: "var(--foreground)",
+                }}
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">
+              <label
+                className="block text-xs font-semibold uppercase tracking-wider mb-1"
+                style={{ color: "var(--muted)" }}
+              >
                 Description
               </label>
               <input
@@ -332,32 +356,40 @@ export function DatasetModal({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Short description of your dataset"
-                className="w-full panel p-2 text-sm rounded-lg border focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full p-2 text-sm rounded-lg border focus:outline-none"
+                style={{
+                  background: "var(--surface-subtle)",
+                  borderColor: "var(--border)",
+                  color: "var(--foreground)",
+                }}
               />
             </div>
           </div>
 
           {/* Mode Switcher */}
-          <div className="flex border rounded-lg overflow-hidden text-xs font-medium">
+          <div
+            className="flex border rounded-lg overflow-hidden text-xs font-semibold"
+            style={{ borderColor: "var(--border)" }}
+          >
             <button
               type="button"
               onClick={() => setMode("visual")}
-              className={`flex-1 py-2 text-center transition-colors ${
-                mode === "visual"
-                  ? "bg-indigo-600 text-white font-semibold"
-                  : "hover:bg-black/5 dark:hover:bg-white/5"
-              }`}
+              className="flex-1 py-2 text-center transition-colors cursor-pointer"
+              style={{
+                background: mode === "visual" ? "var(--accent)" : "var(--surface-subtle)",
+                color: mode === "visual" ? "var(--accent-foreground)" : "var(--muted)",
+              }}
             >
               Visual Table Builder
             </button>
             <button
               type="button"
               onClick={() => setMode("sql")}
-              className={`flex-1 py-2 text-center transition-colors ${
-                mode === "sql"
-                  ? "bg-indigo-600 text-white font-semibold"
-                  : "hover:bg-black/5 dark:hover:bg-white/5"
-              }`}
+              className="flex-1 py-2 text-center transition-colors cursor-pointer"
+              style={{
+                background: mode === "sql" ? "var(--accent)" : "var(--surface-subtle)",
+                color: mode === "sql" ? "var(--accent-foreground)" : "var(--muted)",
+              }}
             >
               SQL DDL Script
             </button>
@@ -374,12 +406,22 @@ export function DatasetModal({
                   onChange={(e) => setNewTableName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleAddTable()}
                   placeholder="New table name (e.g. orders, patients)"
-                  className="flex-1 panel p-2 text-sm rounded-lg border focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="flex-1 p-2 text-sm rounded-lg border focus:outline-none"
+                  style={{
+                    background: "var(--surface-subtle)",
+                    borderColor: "var(--border)",
+                    color: "var(--foreground)",
+                  }}
                 />
                 <button
                   type="button"
                   onClick={handleAddTable}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer shadow-xs border"
+                  style={{
+                    background: "var(--accent-gradient, var(--accent))",
+                    color: "var(--accent-foreground)",
+                    borderColor: "var(--accent)",
+                  }}
                 >
                   + Add Table
                 </button>
@@ -390,14 +432,21 @@ export function DatasetModal({
                 {tables.map((table, tIdx) => (
                   <div
                     key={tIdx}
-                    className="panel p-3 rounded-lg border space-y-2.5"
+                    className="p-3 rounded-lg border space-y-2.5"
+                    style={{
+                      background: "var(--surface-subtle)",
+                      borderColor: "var(--border)",
+                    }}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-sm text-indigo-600 dark:text-indigo-400">
+                        <span
+                          className="font-mono font-bold text-sm"
+                          style={{ color: "var(--foreground)" }}
+                        >
                           {table.name}
                         </span>
-                        <span className="text-[11px] opacity-60">
+                        <span className="text-[11px] opacity-60" style={{ color: "var(--muted)" }}>
                           ({table.columns.length} columns)
                         </span>
                       </div>
@@ -405,14 +454,19 @@ export function DatasetModal({
                         <button
                           type="button"
                           onClick={() => handleAddColumn(tIdx)}
-                          className="text-[11px] px-2 py-1 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 font-medium"
+                          className="text-[11px] px-2 py-1 rounded border font-medium cursor-pointer hover:opacity-90"
+                          style={{
+                            background: "var(--panel)",
+                            borderColor: "var(--border)",
+                            color: "var(--foreground)",
+                          }}
                         >
                           + Column
                         </button>
                         <button
                           type="button"
                           onClick={() => handleRemoveTable(tIdx)}
-                          className="text-[11px] px-2 py-1 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 font-medium"
+                          className="text-[11px] px-2 py-1 rounded border border-red-500/40 text-red-500 hover:bg-red-500/10 font-medium cursor-pointer"
                         >
                           Delete
                         </button>
@@ -424,7 +478,11 @@ export function DatasetModal({
                       {table.columns.map((col, cIdx) => (
                         <div
                           key={cIdx}
-                          className="flex flex-wrap items-center gap-2 text-xs bg-black/5 dark:bg-white/5 p-2 rounded"
+                          className="flex flex-wrap items-center gap-2 text-xs p-2 rounded border"
+                          style={{
+                            background: "var(--panel)",
+                            borderColor: "var(--border)",
+                          }}
                         >
                           <input
                             type="text"
@@ -435,7 +493,12 @@ export function DatasetModal({
                               })
                             }
                             placeholder="column_name"
-                            className="panel px-2 py-1 rounded border font-mono text-xs w-28 focus:outline-none"
+                            className="px-2 py-1 rounded border font-mono text-xs w-28 focus:outline-none"
+                            style={{
+                              background: "var(--surface-subtle)",
+                              borderColor: "var(--border)",
+                              color: "var(--foreground)",
+                            }}
                           />
                           <select
                             value={col.type}
@@ -444,7 +507,12 @@ export function DatasetModal({
                                 type: e.target.value as ColumnType,
                               })
                             }
-                            className="panel px-2 py-1 rounded border text-xs focus:outline-none"
+                            className="px-2 py-1 rounded border text-xs focus:outline-none"
+                            style={{
+                              background: "var(--surface-subtle)",
+                              borderColor: "var(--border)",
+                              color: "var(--foreground)",
+                            }}
                           >
                             {COLUMN_TYPES.map((type) => (
                               <option key={type} value={type}>
@@ -454,7 +522,10 @@ export function DatasetModal({
                           </select>
 
                           {/* Primary Key Checkbox */}
-                          <label className="flex items-center gap-1 cursor-pointer select-none text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                          <label
+                            className="flex items-center gap-1 cursor-pointer select-none text-[11px] font-semibold"
+                            style={{ color: "var(--foreground)" }}
+                          >
                             <input
                               type="checkbox"
                               checked={Boolean(col.pk)}
@@ -464,13 +535,16 @@ export function DatasetModal({
                                 })
                               }
                               className="rounded"
+                              style={{ accentColor: "var(--accent)" }}
                             />
                             PK
                           </label>
 
                           {/* Foreign Key Selector */}
                           <div className="flex items-center gap-1">
-                            <span className="opacity-60 text-[10px]">FK →</span>
+                            <span className="opacity-60 text-[10px]" style={{ color: "var(--muted)" }}>
+                              FK →
+                            </span>
                             <select
                               value={
                                 col.fk
@@ -490,7 +564,12 @@ export function DatasetModal({
                                   });
                                 }
                               }}
-                              className="panel px-1.5 py-1 rounded border text-[11px] focus:outline-none max-w-32"
+                              className="px-1.5 py-1 rounded border text-[11px] focus:outline-none max-w-32"
+                              style={{
+                                background: "var(--surface-subtle)",
+                                borderColor: "var(--border)",
+                                color: "var(--foreground)",
+                              }}
                             >
                               <option value="">None</option>
                               {tables
@@ -512,7 +591,7 @@ export function DatasetModal({
                             <button
                               type="button"
                               onClick={() => handleRemoveColumn(tIdx, cIdx)}
-                              className="text-rose-500 opacity-60 hover:opacity-100 ml-auto"
+                              className="text-red-500 opacity-70 hover:opacity-100 ml-auto cursor-pointer"
                               title="Remove column"
                             >
                               ✕
@@ -526,13 +605,22 @@ export function DatasetModal({
               </div>
 
               {/* Real-time ER Diagram preview */}
-              <div className="panel p-3 rounded-lg border">
+              <div
+                className="p-3 rounded-lg border"
+                style={{
+                  background: "var(--surface-subtle)",
+                  borderColor: "var(--border)",
+                }}
+              >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider opacity-70">
+                  <span
+                    className="text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: "var(--muted)" }}
+                  >
                     Live ER Diagram Preview
                   </span>
-                  <span className="text-[11px] opacity-60">
-                    Auto-generated from tables & relationships
+                  <span className="text-[11px] opacity-70" style={{ color: "var(--muted)" }}>
+                    Auto-generated from tables &amp; relationships
                   </span>
                 </div>
                 <MermaidDiagramPreview source={liveMermaid} dark={dark} />
@@ -543,17 +631,25 @@ export function DatasetModal({
           {/* Mode 2: SQL Script Mode */}
           {mode === "sql" && (
             <div className="space-y-2">
-              <label className="block text-xs font-semibold uppercase tracking-wider opacity-70">
-                SQL Schema Script (CREATE TABLE & INSERT)
+              <label
+                className="block text-xs font-semibold uppercase tracking-wider"
+                style={{ color: "var(--muted)" }}
+              >
+                SQL Schema Script (CREATE TABLE &amp; INSERT)
               </label>
               <textarea
                 value={sqlScript}
                 onChange={(e) => setSqlScript(e.target.value)}
                 rows={12}
                 spellCheck={false}
-                className="w-full panel p-3 text-xs font-mono rounded-lg border resize-y focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full p-3 text-xs font-mono rounded-lg border resize-y focus:outline-none"
+                style={{
+                  background: "var(--surface-subtle)",
+                  borderColor: "var(--border)",
+                  color: "var(--foreground)",
+                }}
               />
-              <p className="text-[11px] opacity-60">
+              <p className="text-[11px] opacity-70" style={{ color: "var(--muted)" }}>
                 Tip: Multiple statements separated by semicolons are fully supported.
               </p>
             </div>
@@ -561,19 +657,34 @@ export function DatasetModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t bg-black/5 dark:bg-white/5">
+        <div
+          className="flex items-center justify-end gap-2 px-5 py-3 border-t"
+          style={{
+            background: "var(--surface-subtle)",
+            borderColor: "var(--border)",
+          }}
+        >
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-xs font-medium border hover:opacity-80 transition-opacity"
+            className="px-4 py-2 rounded-lg text-xs font-semibold border transition-colors cursor-pointer hover:opacity-90"
+            style={{
+              background: "var(--panel)",
+              borderColor: "var(--border)",
+              color: "var(--foreground)",
+            }}
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
-            style={{ background: "var(--accent)" }}
+            className="px-4 py-2 rounded-lg text-xs font-semibold transition-opacity shadow-xs cursor-pointer hover:opacity-90 border"
+            style={{
+              background: "var(--accent-gradient, var(--accent))",
+              color: "var(--accent-foreground)",
+              borderColor: "var(--accent)",
+            }}
           >
             Create Dataset
           </button>
@@ -601,7 +712,7 @@ function MermaidDiagramPreview({
         mermaid.initialize({
           startOnLoad: false,
           securityLevel: "strict",
-          theme: dark ? "dark" : "default",
+          theme: dark ? "dark" : "neutral",
         });
         return mermaid.render(renderId, source);
       })
@@ -611,7 +722,7 @@ function MermaidDiagramPreview({
       })
       .catch((err) => {
         if (cancelled || !diagramRef.current) return;
-        diagramRef.current.innerHTML = `<p class="text-[11px] text-rose-500 p-1">Diagram preview: ${err instanceof Error ? err.message : String(err)}</p>`;
+        diagramRef.current.innerHTML = `<p class="text-[11px] text-red-500 p-1">Diagram preview: ${err instanceof Error ? err.message : String(err)}</p>`;
       });
     return () => {
       cancelled = true;
@@ -622,7 +733,12 @@ function MermaidDiagramPreview({
     <div
       ref={diagramRef}
       className="panel min-h-24 max-h-56 overflow-auto p-2 [&_svg]:mx-auto [&_svg]:max-w-full"
+      style={{
+        background: "var(--panel)",
+        borderColor: "var(--border)",
+      }}
       aria-label="ER diagram preview"
     />
   );
 }
+
