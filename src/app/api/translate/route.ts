@@ -35,6 +35,17 @@ const audioResponseSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const apiKey = env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          error:
+            "GEMINI_API_KEY is not configured in .env. Please add your GEMINI_API_KEY to enable AI query translation.",
+        },
+        { status: 503 },
+      );
+    }
+
     const rawBody = await request.json();
     const body = requestSchema.parse(rawBody);
     const dataset = DATASETS.find((item) => item.id === body.datasetId);
@@ -72,7 +83,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const google = createGoogleGenerativeAI({ apiKey: env.GEMINI_API_KEY });
+    const google = createGoogleGenerativeAI({ apiKey });
 
     const systemPrompt = `You translate natural-language database questions or instructions into standard SQL for an educational database engine.
 Tables and schema available in this database:
@@ -94,7 +105,7 @@ Use exact table and column names matching the schema (case-insensitive). Return 
     let interpretation = "";
     let transcribedQuestion = body.question || "";
 
-    const modelName = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
     if (body.audioBase64) {
       // Direct audio voice-to-SQL processing via Gemini multimodal capabilities

@@ -8,8 +8,14 @@ export function loadEnvVariable(key: string): string {
   return value;
 }
 
+export function getGeminiApiKey(): string {
+  return process.env.GEMINI_API_KEY?.trim() || "";
+}
+
 const env = {
-  GEMINI_API_KEY: loadEnvVariable("GEMINI_API_KEY"),
+  get GEMINI_API_KEY(): string {
+    return process.env.GEMINI_API_KEY?.trim() || "";
+  },
 };
 
 export default env;

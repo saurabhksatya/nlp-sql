@@ -53,6 +53,7 @@ export interface InputPanelProps {
   onToggleVoiceFeedback?: (enabled: boolean) => void;
   onOpenCreateModal?: () => void;
   onDeleteDataset?: (id: string) => void;
+  onOpenGuide?: () => void;
 }
 
 export interface VisualizationPanelProps {
