@@ -7,22 +7,12 @@ import { InputPanel } from "@/components/InputPanel";
 import { DatasetModal } from "@/components/DatasetModal";
 import type { HistoryItem, Tab, ThemeId } from "@/components/nlSqlTypes";
 import { VisualizationPanel } from "@/components/VisualizationPanel";
-import { ProjectsPanel } from "@/components/ProjectsPanel";
-import { SaveProjectModal } from "@/components/SaveProjectModal";
-import { UnsavedChangesModal } from "@/components/UnsavedChangesModal";
-import { RenameProjectModal } from "@/components/RenameProjectModal";
 import { GuideModal } from "@/components/GuideModal";
-import {
-  getSavedProjects,
-  saveProjectToStorage,
-  deleteProjectFromStorage,
-  renameProjectInStorage,
-  type SavedProject,
-} from "@/lib/projectStorage";
 import {
   DATASETS,
   getDefaultSchema,
   erDiagramMermaid,
+  cloneSchema,
   type Table,
   type Dataset,
 } from "@/lib/schema";
@@ -36,6 +26,7 @@ export default function Home() {
   const [customDatasets, setCustomDatasets] = useState<Dataset[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = useState("ecommerce");
   const [isDatasetModalOpen, setIsDatasetModalOpen] = useState(false);
+  const [datasetToEdit, setDatasetToEdit] = useState<Dataset | null>(null);
 
   const allDatasets = useMemo(
     () => [...DATASETS, ...customDatasets],
@@ -75,26 +66,8 @@ export default function Home() {
   const [tab, setTab] = useState<Tab>("result");
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Projects & Unsaved changes state
-  const [projects, setProjects] = useState<SavedProject[]>([]);
-  const [activeProject, setActiveProject] = useState<SavedProject | null>(null);
-  const [lastSavedBaseline, setLastSavedBaseline] = useState<{
-    datasetId: string;
-    sql: string;
-    nlInput: string;
-  }>({
-    datasetId: "ecommerce",
-    sql: "SELECT name, city FROM customers WHERE city = 'Mumbai';",
-    nlInput: "",
-  });
-
   // Modals & Panels UI state
-  const [projectsOpen, setProjectsOpen] = useState(false);
-  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
-  const [isUnsavedModalOpen, setIsUnsavedModalOpen] = useState(false);
-  const [projectToRename, setProjectToRename] = useState<SavedProject | null>(null);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
-  const [pendingNewAfterSave, setPendingNewAfterSave] = useState(false);
   const [mobileTab, setMobileTab] = useState<"input" | "canvas" | "tools">("canvas");
 
   const isDark = useMemo(() => theme !== "pearl", [theme]);
@@ -153,8 +126,7 @@ export default function Home() {
     [applyThemeToDOM],
   );
 
-
-  // Load history, custom datasets, & saved projects from localStorage on mount
+  // Load history & custom datasets from localStorage on mount
   useEffect(() => {
     try {
       const savedCustom = localStorage.getItem(CUSTOM_DATASETS_KEY);
@@ -172,19 +144,8 @@ export default function Home() {
         const parsedHistory = JSON.parse(savedHistory) as HistoryItem[];
         setHistory(parsedHistory);
       }
-      const loadedProjects = getSavedProjects();
-      setProjects(loadedProjects);
     } catch {}
   }, []);
-
-  // Track if current state differs from last saved baseline
-  const hasUnsavedChanges = useMemo(() => {
-    return (
-      selectedDatasetId !== lastSavedBaseline.datasetId ||
-      sql.trim() !== lastSavedBaseline.sql.trim() ||
-      nlInput.trim() !== lastSavedBaseline.nlInput.trim()
-    );
-  }, [selectedDatasetId, sql, nlInput, lastSavedBaseline]);
 
   const runQuery = useCallback(
     (query?: string, question?: string, schemaToUse?: Table[]) => {
@@ -264,17 +225,34 @@ export default function Home() {
     setActiveStep(0);
   }, [selectedDataset, allDatasets]);
 
-  const handleCreateDataset = useCallback((newDataset: Dataset) => {
+  const handleOpenCreateModal = useCallback(() => {
+    setDatasetToEdit(null);
+    setIsDatasetModalOpen(true);
+  }, []);
+
+  const handleOpenEditModal = useCallback((dataset: Dataset) => {
+    setDatasetToEdit(dataset);
+    setIsDatasetModalOpen(true);
+  }, []);
+
+  const handleSaveDataset = useCallback((savedDataset: Dataset) => {
     setCustomDatasets((prev) => {
-      const next = [newDataset, ...prev.filter((d) => d.id !== newDataset.id)];
+      const existingIdx = prev.findIndex((d) => d.id === savedDataset.id);
+      let next: Dataset[];
+      if (existingIdx >= 0) {
+        next = [...prev];
+        next[existingIdx] = savedDataset;
+      } else {
+        next = [savedDataset, ...prev];
+      }
       try {
         localStorage.setItem(CUSTOM_DATASETS_KEY, JSON.stringify(next));
       } catch {}
       return next;
     });
-    setSelectedDatasetId(newDataset.id);
-    setActiveSchema(newDataset.schema);
-    setSql(newDataset.defaultQuery);
+    setSelectedDatasetId(savedDataset.id);
+    setActiveSchema(cloneSchema(savedDataset.schema));
+    setSql(savedDataset.defaultQuery);
     setNlInput("");
     setNlInfo(null);
     setSteps([]);
@@ -284,22 +262,6 @@ export default function Home() {
     setActiveStep(0);
     setTab("schema");
   }, []);
-
-  const handleDeleteDataset = useCallback(
-    (id: string) => {
-      setCustomDatasets((prev) => {
-        const next = prev.filter((d) => d.id !== id);
-        try {
-          localStorage.setItem(CUSTOM_DATASETS_KEY, JSON.stringify(next));
-        } catch {}
-        return next;
-      });
-      if (selectedDatasetId === id) {
-        changeDataset("ecommerce");
-      }
-    },
-    [selectedDatasetId, changeDataset],
-  );
 
   const play = useCallback(() => {
     if (!steps.length) return;
@@ -415,197 +377,6 @@ export default function Home() {
     [runQuery],
   );
 
-  // Project Management Actions
-  const performCreateNewProject = useCallback(() => {
-    const defaultDs = DATASETS[0];
-    setSelectedDatasetId(defaultDs.id);
-    setActiveSchema(getDefaultSchema(defaultDs.id, allDatasets));
-    setSql(defaultDs.defaultQuery);
-    setNlInput("");
-    setNlInfo(null);
-    setTab("result");
-    setActiveStep(0);
-    setActiveProject(null);
-    setLastSavedBaseline({
-      datasetId: defaultDs.id,
-      sql: defaultDs.defaultQuery,
-      nlInput: "",
-    });
-    runQuery(defaultDs.defaultQuery, undefined, defaultDs.schema);
-  }, [allDatasets, runQuery]);
-
-  const handleNewProjectClick = useCallback(() => {
-    if (hasUnsavedChanges) {
-      setIsUnsavedModalOpen(true);
-    } else {
-      performCreateNewProject();
-    }
-  }, [hasUnsavedChanges, performCreateNewProject]);
-
-  const handleSaveProjectClick = useCallback(() => {
-    if (activeProject) {
-      // Update existing project without creating duplicates
-      const updatedProject: SavedProject = {
-        ...activeProject,
-        datasetId: selectedDatasetId,
-        sql,
-        nlInput,
-        nlInfo,
-        tab,
-        activeStep,
-      };
-      const updatedList = saveProjectToStorage(updatedProject);
-      setProjects(updatedList);
-      setActiveProject(updatedProject);
-      setLastSavedBaseline({
-        datasetId: selectedDatasetId,
-        sql,
-        nlInput,
-      });
-    } else {
-      // Open modal to name new project
-      setIsSaveModalOpen(true);
-    }
-  }, [activeProject, selectedDatasetId, sql, nlInput, nlInfo, tab, activeStep]);
-
-  const handleSaveModalConfirm = useCallback(
-    (name: string) => {
-      const projectId =
-        activeProject?.id ||
-        `proj_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-
-      const projectToSave: SavedProject = {
-        id: projectId,
-        name,
-        datasetId: selectedDatasetId,
-        sql,
-        nlInput,
-        nlInfo,
-        tab,
-        activeStep,
-        createdAt: activeProject?.createdAt || Date.now(),
-        updatedAt: Date.now(),
-      };
-
-      const updatedList = saveProjectToStorage(projectToSave);
-      setProjects(updatedList);
-      setActiveProject(projectToSave);
-      setLastSavedBaseline({
-        datasetId: selectedDatasetId,
-        sql,
-        nlInput,
-      });
-      setIsSaveModalOpen(false);
-
-      if (pendingNewAfterSave) {
-        setPendingNewAfterSave(false);
-        performCreateNewProject();
-      }
-    },
-    [
-      activeProject,
-      selectedDatasetId,
-      sql,
-      nlInput,
-      nlInfo,
-      tab,
-      activeStep,
-      pendingNewAfterSave,
-      performCreateNewProject,
-    ],
-  );
-
-  const handleUnsavedModalSaveAndNew = useCallback(() => {
-    setIsUnsavedModalOpen(false);
-    if (activeProject) {
-      const updatedProject: SavedProject = {
-        ...activeProject,
-        datasetId: selectedDatasetId,
-        sql,
-        nlInput,
-        nlInfo,
-        tab,
-        activeStep,
-      };
-      const updatedList = saveProjectToStorage(updatedProject);
-      setProjects(updatedList);
-      setActiveProject(updatedProject);
-      setLastSavedBaseline({
-        datasetId: selectedDatasetId,
-        sql,
-        nlInput,
-      });
-      performCreateNewProject();
-    } else {
-      setPendingNewAfterSave(true);
-      setIsSaveModalOpen(true);
-    }
-  }, [
-    activeProject,
-    selectedDatasetId,
-    sql,
-    nlInput,
-    nlInfo,
-    tab,
-    activeStep,
-    performCreateNewProject,
-  ]);
-
-  const handleUnsavedModalDontSave = useCallback(() => {
-    setIsUnsavedModalOpen(false);
-    performCreateNewProject();
-  }, [performCreateNewProject]);
-
-  const handleLoadProject = useCallback(
-    (project: SavedProject) => {
-      const dataset =
-        allDatasets.find((item) => item.id === project.datasetId) ?? allDatasets[0];
-      setSelectedDatasetId(dataset.id);
-      const schema = getDefaultSchema(dataset.id, allDatasets);
-      setActiveSchema(schema);
-      setSql(project.sql);
-      setNlInput(project.nlInput || "");
-      setNlInfo(project.nlInfo || null);
-      if (project.tab) setTab(project.tab);
-      if (typeof project.activeStep === "number") {
-        setActiveStep(project.activeStep);
-      }
-      setActiveProject(project);
-      setLastSavedBaseline({
-        datasetId: project.datasetId,
-        sql: project.sql,
-        nlInput: project.nlInput || "",
-      });
-      runQuery(project.sql, project.nlInput || undefined, schema);
-      setProjectsOpen(false);
-    },
-    [allDatasets, runQuery],
-  );
-
-  const handleRenameProject = useCallback(
-    (newName: string) => {
-      if (!projectToRename) return;
-      const updated = renameProjectInStorage(projectToRename.id, newName);
-      setProjects(updated);
-      if (activeProject?.id === projectToRename.id) {
-        setActiveProject((prev) => (prev ? { ...prev, name: newName } : null));
-      }
-      setProjectToRename(null);
-    },
-    [projectToRename, activeProject],
-  );
-
-  const handleDeleteProject = useCallback(
-    (id: string) => {
-      const updated = deleteProjectFromStorage(id);
-      setProjects(updated);
-      if (activeProject?.id === id) {
-        setActiveProject(null);
-      }
-    },
-    [activeProject],
-  );
-
   const exportCSV = useCallback(() => {
     if (!finalRows.length) return;
     const escapeValue = (value: unknown) =>
@@ -663,8 +434,8 @@ export default function Home() {
             datasets={allDatasets}
             selectedDatasetId={selectedDataset.id}
             onDatasetChange={changeDataset}
-            onOpenCreateModal={() => setIsDatasetModalOpen(true)}
-            onDeleteDataset={handleDeleteDataset}
+            onOpenCreateModal={handleOpenCreateModal}
+            onEditDataset={handleOpenEditModal}
             examples={selectedDataset.examples}
             nlInput={nlInput}
             onNlInputChange={setNlInput}
@@ -687,43 +458,8 @@ export default function Home() {
           />
         </div>
 
-        {/* Center: Canvas / Visualization with Projects Section at Top-Left */}
+        {/* Center: Canvas / Visualization */}
         <div className={`flex flex-col gap-3 min-w-0 ${mobileTab !== "canvas" ? "hidden lg:flex" : "flex"}`}>
-          {/* Top Bar for Canvas: Collapsible Projects Section directly below top bar */}
-          <div className="flex items-center justify-between gap-3">
-            <ProjectsPanel
-              isOpen={projectsOpen}
-              onToggle={() => setProjectsOpen((prev) => !prev)}
-              projects={projects}
-              activeProjectId={activeProject?.id ?? null}
-              activeProjectName={activeProject?.name ?? ""}
-              hasUnsavedChanges={hasUnsavedChanges}
-              onNewProject={handleNewProjectClick}
-              onSaveProject={handleSaveProjectClick}
-              onSelectProject={handleLoadProject}
-              onOpenRenameModal={(p) => setProjectToRename(p)}
-              onDeleteProject={handleDeleteProject}
-            />
-
-            {/* Subtle Save Shortcut for fast desktop access */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleSaveProjectClick}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                title={hasUnsavedChanges ? "Save current changes" : "Workspace is up to date"}
-              >
-                <svg className="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                </svg>
-                <span>Save</span>
-                {hasUnsavedChanges && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-500" />
-                )}
-              </button>
-            </div>
-          </div>
-
           <VisualizationPanel
             tab={tab}
             onTabChange={setTab}
@@ -745,9 +481,14 @@ export default function Home() {
           />
         </div>
 
-        {/* Right Sidebar: Explanation Panel */}
+        {/* Right Sidebar: Explanation Panel with Export Dataset Section Box */}
         <div className={`flex flex-col ${mobileTab !== "tools" ? "hidden lg:flex" : "flex"}`}>
-          <ExplanationPanel current={current} error={error} />
+          <ExplanationPanel
+            current={current}
+            error={error}
+            dataset={selectedDataset}
+            activeSchema={activeSchema}
+          />
         </div>
       </main>
 
@@ -768,34 +509,6 @@ export default function Home() {
           </svg>
           <span className="text-[11px] font-medium">Guide</span>
         </button>
-
-        {/* Project Section / Save Project Button at the bottom for phone */}
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setProjectsOpen((prev) => !prev)}
-            className="flex flex-col items-center justify-center gap-1 px-3 py-1 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-            aria-label="Toggle projects list"
-          >
-            <svg className="w-5 h-5 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-            </svg>
-            <span className="text-[11px] font-medium">Projects</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleSaveProjectClick}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white dark:text-black transition-opacity cursor-pointer shadow-xs"
-            style={{ background: "var(--accent)" }}
-            aria-label="Save project"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-            </svg>
-            <span>Save</span>
-          </button>
-        </div>
 
         {/* Info & Tools button */}
         <div className="flex items-center gap-1">
@@ -841,35 +554,9 @@ export default function Home() {
       <DatasetModal
         isOpen={isDatasetModalOpen}
         onClose={() => setIsDatasetModalOpen(false)}
-        onCreateDataset={handleCreateDataset}
+        onCreateDataset={handleSaveDataset}
+        datasetToEdit={datasetToEdit}
         dark={isDark}
-      />
-
-      <SaveProjectModal
-        isOpen={isSaveModalOpen}
-        initialName={
-          activeProject?.name ||
-          (nlInput ? nlInput.slice(0, 30) : `${selectedDataset.name} Query`)
-        }
-        onSave={handleSaveModalConfirm}
-        onClose={() => {
-          setIsSaveModalOpen(false);
-          setPendingNewAfterSave(false);
-        }}
-      />
-
-      <UnsavedChangesModal
-        isOpen={isUnsavedModalOpen}
-        onSaveAndNew={handleUnsavedModalSaveAndNew}
-        onDontSave={handleUnsavedModalDontSave}
-        onCancel={() => setIsUnsavedModalOpen(false)}
-      />
-
-      <RenameProjectModal
-        isOpen={!!projectToRename}
-        currentName={projectToRename?.name || ""}
-        onRename={handleRenameProject}
-        onClose={() => setProjectToRename(null)}
       />
 
       <GuideModal

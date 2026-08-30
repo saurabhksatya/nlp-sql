@@ -6,14 +6,17 @@ import {
   type ColumnType,
   type Dataset,
   type Table,
+  cloneSchema,
   erDiagramMermaid,
 } from "@/lib/schema";
 import { executeSQL } from "@/lib/sqlEngine";
+import { generateDatasetSQL } from "@/lib/exportUtils";
 
 interface DatasetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreateDataset: (dataset: Dataset) => void;
+  datasetToEdit?: Dataset | null;
   dark?: boolean;
 }
 
@@ -56,6 +59,7 @@ export function DatasetModal({
   isOpen,
   onClose,
   onCreateDataset,
+  datasetToEdit,
   dark = false,
 }: DatasetModalProps) {
   const [mode, setMode] = useState<"visual" | "sql">("visual");
@@ -83,30 +87,39 @@ export function DatasetModal({
   // SQL Script state
   const [sqlScript, setSqlScript] = useState(DEFAULT_SQL_TEMPLATE);
 
-  // Reset form when modal opens
+  // Reset or pre-fill form when modal opens
   useEffect(() => {
     if (isOpen) {
-      setName("");
-      setDescription("");
-      setError(null);
-      setMode("visual");
-      setTables([
-        {
-          name: "items",
-          columns: [
-            { name: "id", type: "INTEGER", pk: true },
-            { name: "name", type: "TEXT" },
-            { name: "price", type: "REAL" },
-          ],
-          rows: [
-            { id: 1, name: "Item Alpha", price: 100 },
-            { id: 2, name: "Item Beta", price: 250 },
-          ],
-        },
-      ]);
-      setSqlScript(DEFAULT_SQL_TEMPLATE);
+      if (datasetToEdit) {
+        setName(datasetToEdit.name);
+        setDescription(datasetToEdit.description || "");
+        setError(null);
+        setMode("visual");
+        setTables(cloneSchema(datasetToEdit.schema));
+        setSqlScript(generateDatasetSQL(datasetToEdit.name, datasetToEdit.schema));
+      } else {
+        setName("");
+        setDescription("");
+        setError(null);
+        setMode("visual");
+        setTables([
+          {
+            name: "items",
+            columns: [
+              { name: "id", type: "INTEGER", pk: true },
+              { name: "name", type: "TEXT" },
+              { name: "price", type: "REAL" },
+            ],
+            rows: [
+              { id: 1, name: "Item Alpha", price: 100 },
+              { id: 2, name: "Item Beta", price: 250 },
+            ],
+          },
+        ]);
+        setSqlScript(DEFAULT_SQL_TEMPLATE);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, datasetToEdit]);
 
   // Handle Table Add in Visual Mode
   const handleAddTable = () => {
@@ -183,8 +196,8 @@ export function DatasetModal({
   // Handle submission
   const handleSave = () => {
     setError(null);
-    const datasetName = name.trim() || "Custom Dataset";
-    const datasetId = `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const datasetName = name.trim() || (datasetToEdit ? datasetToEdit.name : "Custom Dataset");
+    const datasetId = datasetToEdit?.id || `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
     if (mode === "visual") {
       if (tables.length === 0) {
@@ -206,27 +219,29 @@ export function DatasetModal({
         ? `SELECT * FROM ${tables[0].name} LIMIT 10;`
         : "SELECT 1;";
 
-      const newDataset: Dataset = {
+      const savedDataset: Dataset = {
         id: datasetId,
         name: datasetName,
         description:
-          description.trim() || `Custom dataset with ${tables.length} tables`,
+          description.trim() || `Dataset with ${tables.length} tables`,
         schema: tables,
-        defaultQuery,
-        examples: [
-          {
-            id: 1,
-            category: "DQL",
-            question: `Show all records from ${tables[0].name}`,
-            sql: defaultQuery,
-            expected: `Query all rows from ${tables[0].name}`,
-          },
-        ],
+        defaultQuery: datasetToEdit?.defaultQuery || defaultQuery,
+        examples: datasetToEdit?.examples && datasetToEdit.examples.length > 0
+          ? datasetToEdit.examples
+          : [
+              {
+                id: 1,
+                category: "DQL",
+                question: `Show all records from ${tables[0].name}`,
+                sql: defaultQuery,
+                expected: `Query all rows from ${tables[0].name}`,
+              },
+            ],
         isCustom: true,
-        createdAt: Date.now(),
+        createdAt: datasetToEdit?.createdAt || Date.now(),
       };
 
-      onCreateDataset(newDataset);
+      onCreateDataset(savedDataset);
       onClose();
     } else {
       // SQL mode
@@ -246,27 +261,29 @@ export function DatasetModal({
           ? `SELECT * FROM ${schema[0].name} LIMIT 10;`
           : "SELECT 1;";
 
-        const newDataset: Dataset = {
+        const savedDataset: Dataset = {
           id: datasetId,
           name: datasetName,
           description:
-            description.trim() || `Created via SQL (${schema.length} tables)`,
+            description.trim() || `Configured via SQL (${schema.length} tables)`,
           schema,
-          defaultQuery,
-          examples: [
-            {
-              id: 1,
-              category: "DQL",
-              question: `Query ${schema[0].name}`,
-              sql: defaultQuery,
-              expected: `Sample query on ${schema[0].name}`,
-            },
-          ],
+          defaultQuery: datasetToEdit?.defaultQuery || defaultQuery,
+          examples: datasetToEdit?.examples && datasetToEdit.examples.length > 0
+            ? datasetToEdit.examples
+            : [
+                {
+                  id: 1,
+                  category: "DQL",
+                  question: `Query ${schema[0].name}`,
+                  sql: defaultQuery,
+                  expected: `Sample query on ${schema[0].name}`,
+                },
+              ],
           isCustom: true,
-          createdAt: Date.now(),
+          createdAt: datasetToEdit?.createdAt || Date.now(),
         };
 
-        onCreateDataset(newDataset);
+        onCreateDataset(savedDataset);
         onClose();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to execute SQL script.");
@@ -298,10 +315,12 @@ export function DatasetModal({
         >
           <div>
             <h2 className="text-lg font-bold" style={{ color: "var(--foreground)" }}>
-              Create New Dataset
+              {datasetToEdit ? `Edit Dataset: ${datasetToEdit.name}` : "Create New Dataset"}
             </h2>
             <p className="text-xs opacity-75" style={{ color: "var(--muted)" }}>
-              Build your custom database tables with schema definitions, primary keys, and relationships.
+              {datasetToEdit
+                ? "Modify your database tables, columns, data rows, and SQL script."
+                : "Build your custom database tables with schema definitions, primary keys, and relationships."}
             </p>
           </div>
           <button
@@ -686,7 +705,7 @@ export function DatasetModal({
               borderColor: "var(--accent)",
             }}
           >
-            Create Dataset
+            {datasetToEdit ? "Save Changes" : "Create Dataset"}
           </button>
         </div>
       </div>

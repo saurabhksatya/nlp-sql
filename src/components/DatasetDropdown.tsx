@@ -6,7 +6,7 @@ interface DatasetDropdownProps {
   selectedDatasetId: string;
   onChange: (id: string) => void;
   onOpenCreateModal?: () => void;
-  onDeleteDataset?: (id: string) => void;
+  onEditDataset?: (dataset: Dataset) => void;
 }
 
 export function DatasetDropdown({
@@ -14,7 +14,7 @@ export function DatasetDropdown({
   selectedDatasetId,
   onChange,
   onOpenCreateModal,
-  onDeleteDataset,
+  onEditDataset,
 }: DatasetDropdownProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -149,17 +149,31 @@ export function DatasetDropdown({
                     {dataset.description}
                   </span>
                 </button>
-                {dataset.isCustom && onDeleteDataset && (
+                {onEditDataset && (
                   <button
                     type="button"
-                    title="Delete custom dataset"
-                    className="p-1 text-xs opacity-60 hover:opacity-100 hover:text-red-500 ml-2 cursor-pointer"
+                    title={`Edit ${dataset.name}`}
+                    className="p-1 px-2 text-xs rounded border border-zinc-500/30 hover:bg-zinc-500/10 text-zinc-300 ml-2 cursor-pointer shrink-0 flex items-center gap-1 font-medium transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onDeleteDataset(dataset.id);
+                      setOpen(false);
+                      onEditDataset(dataset);
                     }}
                   >
-                    🗑
+                    <svg
+                      className="w-3.5 h-3.5 opacity-80"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      />
+                    </svg>
+                    <span>Edit</span>
                   </button>
                 )}
               </div>
