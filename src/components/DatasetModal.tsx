@@ -77,8 +77,8 @@ export function DatasetModal({
         { name: "price", type: "REAL" },
       ],
       rows: [
-        { id: 1, name: "Item Alpha", price: 100 },
-        { id: 2, name: "Item Beta", price: 250 },
+        { id: 1, name: "Item A", price: 100 },
+        { id: 2, name: "Item B", price: 250 },
       ],
     },
   ]);
@@ -111,8 +111,8 @@ export function DatasetModal({
               { name: "price", type: "REAL" },
             ],
             rows: [
-              { id: 1, name: "Item Alpha", price: 100 },
-              { id: 2, name: "Item Beta", price: 250 },
+              { id: 1, name: "Item A", price: 100 },
+              { id: 2, name: "Item B", price: 250 },
             ],
           },
         ]);

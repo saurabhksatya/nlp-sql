@@ -31,19 +31,19 @@ const NOTES: Record<string, string> = {
   FROM: "The database first locates the table on disk and reads its pages into memory. Every subsequent operator works on this working set.",
   JOIN: "A join combines rows of two tables using a predicate. Nested-loop join is O(n·m); real engines use hash joins (O(n+m)) when indexes are absent.",
   WHERE:
-    "Selection (σ) is a row filter — it removes tuples that fail the predicate but never changes their shape.",
+    "Selection (WHERE) is a row filter — it removes tuples that fail the predicate but never changes their shape.",
   "GROUP BY":
     "Grouping partitions rows into buckets so aggregates can be computed per bucket, usually via hashing or sorting.",
   DISTINCT:
-    "DISTINCT removes duplicate values or rows so each remaining value is considered only once (δ operator).",
+    "DISTINCT removes duplicate values or rows so each remaining value is considered only once.",
   HAVING:
     "HAVING filters groups after aggregation, unlike WHERE which filters rows before it.",
   AGGREGATE:
-    "Aggregates collapse many rows into one summary value per group — COUNT, SUM, AVG, MIN, MAX (γ operator).",
+    "Aggregates collapse many rows into one summary value per group — COUNT, SUM, AVG, MIN, MAX.",
   SELECT:
-    "Projection (π) keeps only requested columns, reducing data shipped to the client.",
+    "Projection (SELECT) keeps only requested columns, reducing data shipped to the client.",
   "ORDER BY":
-    "Sorting is typically an external merge sort, O(n log n), possibly spilling to disk for large inputs (τ operator).",
+    "Sorting is typically an external merge sort, O(n log n), possibly spilling to disk for large inputs.",
   LIMIT:
     "LIMIT lets the engine stop early — combined with ORDER BY it enables efficient 'top-N' execution plans.",
 };
@@ -342,9 +342,9 @@ function algebraFor(stage: string, command?: string): string {
     case "CONSTRAINT":
       return "Assert(Domain(col) ∧ Unique(PK) ∧ FK_Ref(Target))";
     case "MUTATION":
-      if (command === "INSERT") return "R ← R ∪ { t_new }";
-      if (command === "UPDATE") return "R ← (R \\ σ_p(R)) ∪ { update(t) }";
-      if (command === "DELETE") return "R ← R \\ σ_p(R)";
+      if (command === "INSERT") return "R ← R ∪ { new_rows }";
+      if (command === "UPDATE") return "R ← update_matching(R, predicate)";
+      if (command === "DELETE") return "R ← delete_matching(R, predicate)";
       if (command === "ALTER TABLE") return "Schema(R) ← Schema(R) ∪ { attr }";
       if (command === "TRUNCATE") return "R ← ∅";
       return "Mutation(R, BufferPool)";
@@ -355,21 +355,21 @@ function algebraFor(stage: string, command?: string): string {
     case "FROM":
       return "R ← scan(table)";
     case "JOIN":
-      return "R ← R ⋈_θ S";
+      return "R ← join(R, S, condition)";
     case "WHERE":
-      return "R ← σ_condition(R)";
+      return "R ← filter(R, condition)";
     case "GROUP BY":
-      return "R ← γ_group-cols(R)";
+      return "R ← group_by(R, columns)";
     case "DISTINCT":
-      return "R ← δ(R)";
+      return "R ← distinct(R)";
     case "HAVING":
-      return "R ← σ_agg-condition(γ(R))";
+      return "R ← filter_groups(group_results, condition)";
     case "AGGREGATE":
-      return "R ← γ_aggs(R)";
+      return "R ← aggregate(R, functions)";
     case "SELECT":
-      return "R ← π_attrs(R)";
+      return "R ← project(R, columns)";
     case "ORDER BY":
-      return "R ← τ_key(R)";
+      return "R ← sort(R, order_key)";
     case "LIMIT":
       return "R ← top-N(R)";
     default:

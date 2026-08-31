@@ -37,7 +37,7 @@ An interactive web application that teaches and demonstrates **Natural Language 
   - PK (Primary Key) and FK (Foreign Key) constraint markers.
 
 - **📖 Deep Theory & Algebra Panels**:
-  - Per-stage relational algebra notation, mathematical operators (π, σ, ⋈, γ, δ, τ), and ACID transaction theory.
+  - Per-stage relational algebra notation, query execution operators, and ACID transaction theory.
 
 - **💾 Persistence & Export**:
   - Dark/light theme persisted across page reloads with anti-flicker pre-hydration.
