@@ -263,6 +263,19 @@ export default function Home() {
     setTab("schema");
   }, []);
 
+  const handleDeleteDataset = useCallback((id: string) => {
+    setCustomDatasets((prev) => {
+      const next = prev.filter((d) => d.id !== id);
+      try {
+        localStorage.setItem(CUSTOM_DATASETS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+    setDatasetToEdit((current) => (current?.id === id ? null : current));
+    // If deleting the currently selected dataset, fall back to first built-in
+    setSelectedDatasetId((current) => (current === id ? "ecommerce" : current));
+  }, []);
+
   const play = useCallback(() => {
     if (!steps.length) return;
     if (playing) {
@@ -555,6 +568,7 @@ export default function Home() {
         isOpen={isDatasetModalOpen}
         onClose={() => setIsDatasetModalOpen(false)}
         onCreateDataset={handleSaveDataset}
+        onDeleteDataset={handleDeleteDataset}
         datasetToEdit={datasetToEdit}
         dark={isDark}
       />
