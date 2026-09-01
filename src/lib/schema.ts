@@ -208,27 +208,7 @@ export const DATASETS: Dataset[] = [
         sql: "UPDATE products SET price = 94999 WHERE id = 101;",
         expected: "Update Laptop Pro price to 94999.",
       },
-      {
-        id: 6,
-        category: "DML",
-        question: "Delete orders with id 1006",
-        sql: "DELETE FROM orders WHERE id = 1006;",
-        expected: "Delete order with ID 1006.",
-      },
-      {
-        id: 7,
-        category: "DDL",
-        question: "Create a new suppliers table",
-        sql: "CREATE TABLE suppliers (id INTEGER PRIMARY KEY, name TEXT, city TEXT, rating REAL);",
-        expected: "Create a new table 'suppliers' in the active schema.",
-      },
-      {
-        id: 8,
-        category: "DDL",
-        question: "Add a status column to orders",
-        sql: "ALTER TABLE orders ADD COLUMN status TEXT;",
-        expected: "Add a new column 'status' to orders table.",
-      },
+
     ],
   },
   {

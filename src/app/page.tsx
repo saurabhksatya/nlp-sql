@@ -112,7 +112,7 @@ export default function Home() {
         : "eclipse";
       setTheme(activeTheme);
       applyThemeToDOM(activeTheme);
-    } catch {}
+    } catch { }
   }, [applyThemeToDOM]);
 
   const handleThemeChange = useCallback(
@@ -121,7 +121,7 @@ export default function Home() {
       applyThemeToDOM(nextTheme);
       try {
         localStorage.setItem("nlp-sql-theme", nextTheme);
-      } catch {}
+      } catch { }
     },
     [applyThemeToDOM],
   );
@@ -136,7 +136,7 @@ export default function Home() {
           setCustomDatasets(parsed);
         }
       }
-    } catch {}
+    } catch { }
 
     try {
       const savedHistory = localStorage.getItem("nlp-sql-history");
@@ -144,12 +144,13 @@ export default function Home() {
         const parsedHistory = JSON.parse(savedHistory) as HistoryItem[];
         setHistory(parsedHistory);
       }
-    } catch {}
+    } catch { }
   }, []);
 
   const runQuery = useCallback(
     (query?: string, question?: string, schemaToUse?: Table[]) => {
       const q = (query ?? sql).trim();
+      if (!q) return;
       if (timer.current) clearInterval(timer.current);
       setPlaying(false);
       const schema = schemaToUse ?? activeSchema;
@@ -166,9 +167,10 @@ export default function Home() {
       }
 
       if (!result.error && result.steps.length) {
+        const displayQuestion = (question ?? nlInput ?? q).trim() || q;
         const item: HistoryItem = {
           id: Date.now(),
-          question: question ?? nlInput ?? q,
+          question: displayQuestion,
           sql: q,
           rows: result.finalRows.length,
           time: new Date().toLocaleTimeString(),
@@ -176,10 +178,10 @@ export default function Home() {
           command: result.command,
         };
         setHistory((previous) => {
-          const next = [item, ...previous].slice(0, 30);
+          const next = [item, ...previous].slice(0, 5);
           try {
             localStorage.setItem("nlp-sql-history", JSON.stringify(next));
-          } catch {}
+          } catch { }
           return next;
         });
       }
@@ -247,7 +249,7 @@ export default function Home() {
       }
       try {
         localStorage.setItem(CUSTOM_DATASETS_KEY, JSON.stringify(next));
-      } catch {}
+      } catch { }
       return next;
     });
     setSelectedDatasetId(savedDataset.id);
@@ -422,44 +424,123 @@ export default function Home() {
   );
   const current = steps[activeStep];
 
+  // Interactive Panel Resizer Sliders state
+  const [leftWidth, setLeftWidth] = useState(320);
+  const [rightWidth, setRightWidth] = useState(340);
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [isResizingLeft, setIsResizingLeft] = useState(false);
+  const [isResizingRight, setIsResizingRight] = useState(false);
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (isResizingLeft) {
+        const rawWidth = e.clientX - 16;
+        if (rawWidth < 250) {
+          setLeftCollapsed(true);
+          setLeftWidth(250);
+        } else {
+          setLeftCollapsed(false);
+          setLeftWidth(Math.min(rawWidth, 600));
+        }
+      } else if (isResizingRight) {
+        const rawWidth = window.innerWidth - e.clientX - 16;
+        if (rawWidth < 230) {
+          setRightCollapsed(true);
+          setRightWidth(230);
+        } else {
+          setRightCollapsed(false);
+          setRightWidth(Math.min(rawWidth, 600));
+        }
+      }
+    },
+    [isResizingLeft, isResizingRight],
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setIsResizingLeft(false);
+    setIsResizingRight(false);
+  }, []);
+
+  useEffect(() => {
+    if (isResizingLeft || isResizingRight) {
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+      return () => {
+        window.removeEventListener("mousemove", handleMouseMove);
+        window.removeEventListener("mouseup", handleMouseUp);
+      };
+    }
+  }, [isResizingLeft, isResizingRight, handleMouseMove, handleMouseUp]);
+
   return (
-    <div className="min-h-screen flex flex-col pb-16 lg:pb-0">
+    <div className="min-h-screen flex flex-col pb-16 lg:pb-0 select-none">
       {/* Top Bar with Collapsible Theme Selector */}
       <AppHeader theme={theme} onThemeChange={handleThemeChange} />
 
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-[320px_1fr_340px] gap-4 p-4">
-        {/* Left Sidebar: Input Panel with single Guide button at bottom-left */}
-        <div className={`flex flex-col ${mobileTab !== "input" ? "hidden lg:flex" : "flex"}`}>
-          <InputPanel
-            datasets={allDatasets}
-            selectedDatasetId={selectedDataset.id}
-            onDatasetChange={changeDataset}
-            onOpenCreateModal={handleOpenCreateModal}
-            onEditDataset={handleOpenEditModal}
-            examples={selectedDataset.examples}
-            nlInput={nlInput}
-            onNlInputChange={setNlInput}
-            onTranslate={() => translateNL()}
-            nlInfo={nlInfo}
-            sql={sql}
-            onSqlChange={setSql}
-            onRunQuery={() => runQuery()}
-            onExampleSelect={selectExample}
-            onResetDatabase={resetDatabase}
-            error={error}
-            history={history}
-            onSelectHistory={selectHistory}
-            onVoiceTranslateAndRun={(params) => translateNL(params)}
-            isTranslating={isTranslating}
-            voiceFeedback={voiceFeedback}
-            onToggleVoiceFeedback={setVoiceFeedback}
-            onOpenGuide={() => setIsGuideModalOpen(true)}
-            theme={theme}
-          />
+      <main className="flex-1 flex flex-col lg:flex-row gap-0 p-4 relative overflow-hidden">
+        {/* Left Sidebar: Input Panel */}
+        <div
+          style={{ width: leftCollapsed ? "0px" : `${leftWidth}px` }}
+          className={`flex flex-col shrink-0 transition-[width] duration-150 ease-out overflow-hidden ${mobileTab !== "input" ? "hidden lg:flex" : "flex w-full"
+            }`}
+        >
+          <div className="pr-2 h-full flex flex-col">
+            <InputPanel
+              datasets={allDatasets}
+              selectedDatasetId={selectedDataset.id}
+              onDatasetChange={changeDataset}
+              onOpenCreateModal={handleOpenCreateModal}
+              onEditDataset={handleOpenEditModal}
+              examples={selectedDataset.examples}
+              nlInput={nlInput}
+              onNlInputChange={setNlInput}
+              onTranslate={() => translateNL()}
+              nlInfo={nlInfo}
+              sql={sql}
+              onSqlChange={setSql}
+              onRunQuery={() => runQuery()}
+              onExampleSelect={selectExample}
+              onResetDatabase={resetDatabase}
+              error={error}
+              history={history}
+              onSelectHistory={selectHistory}
+              onVoiceTranslateAndRun={(params) => translateNL(params)}
+              isTranslating={isTranslating}
+              voiceFeedback={voiceFeedback}
+              onToggleVoiceFeedback={setVoiceFeedback}
+              onOpenGuide={() => setIsGuideModalOpen(true)}
+              theme={theme}
+            />
+          </div>
+        </div>
+
+        {/* Resizer Slider Handle 1: Between Left and Center */}
+        <div
+          onMouseDown={() => setIsResizingLeft(true)}
+          className="hidden lg:flex w-3 hover:w-4 items-center justify-center cursor-col-resize group relative z-10 shrink-0 transition-all"
+          title="Drag to resize panel or click arrow to collapse"
+        >
+          <div className="w-1 h-12 rounded-full bg-zinc-600/30 group-hover:bg-[var(--accent)] transition-colors flex items-center justify-center">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLeftCollapsed((prev) => !prev);
+              }}
+              title={leftCollapsed ? "Expand Left Panel" : "Collapse Left Panel"}
+              className="text-[9px] px-0.5 py-2 rounded bg-[var(--panel)] border border-[var(--border)] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer font-bold shadow-xs"
+            >
+              {leftCollapsed ? "▶" : "◀"}
+            </button>
+          </div>
         </div>
 
         {/* Center: Canvas / Visualization */}
-        <div className={`flex flex-col gap-3 min-w-0 ${mobileTab !== "canvas" ? "hidden lg:flex" : "flex"}`}>
+        <div
+          className={`flex-1 flex flex-col gap-3 min-w-0 px-1 ${mobileTab !== "canvas" ? "hidden lg:flex" : "flex"
+            }`}
+        >
           <VisualizationPanel
             tab={tab}
             onTabChange={setTab}
@@ -481,14 +562,41 @@ export default function Home() {
           />
         </div>
 
-        {/* Right Sidebar: Explanation Panel with Export Dataset Section Box */}
-        <div className={`flex flex-col ${mobileTab !== "tools" ? "hidden lg:flex" : "flex"}`}>
-          <ExplanationPanel
-            current={current}
-            error={error}
-            dataset={selectedDataset}
-            activeSchema={activeSchema}
-          />
+        {/* Resizer Slider Handle 2: Between Center and Right */}
+        <div
+          onMouseDown={() => setIsResizingRight(true)}
+          className="hidden lg:flex w-3 hover:w-4 items-center justify-center cursor-col-resize group relative z-10 shrink-0 transition-all"
+          title="Drag to resize panel or click arrow to collapse"
+        >
+          <div className="w-1 h-12 rounded-full bg-zinc-600/30 group-hover:bg-[var(--accent)] transition-colors flex items-center justify-center">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setRightCollapsed((prev) => !prev);
+              }}
+              title={rightCollapsed ? "Expand Right Panel" : "Collapse Right Panel"}
+              className="text-[9px] px-0.5 py-2 rounded bg-[var(--panel)] border border-[var(--border)] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer font-bold shadow-xs"
+            >
+              {rightCollapsed ? "◀" : "▶"}
+            </button>
+          </div>
+        </div>
+
+        {/* Right Sidebar: Explanation Panel */}
+        <div
+          style={{ width: rightCollapsed ? "0px" : `${rightWidth}px` }}
+          className={`flex flex-col shrink-0 transition-[width] duration-150 ease-out overflow-hidden ${mobileTab !== "tools" ? "hidden lg:flex" : "flex w-full"
+            }`}
+        >
+          <div className="pl-2 h-full flex flex-col">
+            <ExplanationPanel
+              current={current}
+              error={error}
+              dataset={selectedDataset}
+              activeSchema={activeSchema}
+            />
+          </div>
         </div>
       </main>
 

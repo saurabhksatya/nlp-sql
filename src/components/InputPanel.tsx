@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { InputPanelProps } from "./nlSqlTypes";
 import { DatasetDropdown } from "./DatasetDropdown";
 import { VoiceButton } from "./VoiceButton";
@@ -83,6 +83,32 @@ export function InputPanel({
     }
   };
 
+  const [isCompressed, setIsCompressed] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const cardHeaderRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!cardHeaderRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setIsCompressed(entry.contentRect.width < 340);
+      }
+    });
+    observer.observe(cardHeaderRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!moreMenuRef.current?.contains(event.target as Node)) {
+        setIsMoreMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, []);
+
   const activeDataset = datasets.find((d) => d.id === selectedDatasetId) ?? datasets[0];
 
   return (
@@ -96,65 +122,136 @@ export function InputPanel({
       aria-label="Input panel"
     >
       {/* Scrollable Main Area */}
-      <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+      <div className="flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin space-y-4 pr-1">
         <div
-          className="p-3 rounded-lg border"
-          style={{
-            background: "var(--surface-subtle)",
-            borderColor: "var(--border)",
-          }}
+          ref={cardHeaderRef}
+          className="p-3 rounded-lg"
         >
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between gap-2 mb-2.5">
             <label
               htmlFor="dataset"
-              className="text-xs font-bold uppercase tracking-wider block"
+              className="text-xs font-bold uppercase tracking-wider whitespace-nowrap shrink-0 block"
               style={{ color: "var(--muted)" }}
             >
               Choose a dataset
             </label>
-            <div className="flex items-center gap-1.5">
-              {onEditDataset && activeDataset && (
+
+            {/* 3-Dots Button on Reduced Width / Compression */}
+            <div className="flex items-center gap-1.5 shrink-0 relative" ref={moreMenuRef}>
+              {!isCompressed ? (
+                <div className="flex items-center gap-1.5">
+                  {onEditDataset && activeDataset && (
+                    <button
+                      type="button"
+                      onClick={() => onEditDataset(activeDataset)}
+                      title="Edit currently selected dataset"
+                      className="h-6.5 px-2 text-xs rounded-md border border-purple-500/40 text-purple-400 hover:bg-purple-500/10 transition-colors font-semibold cursor-pointer inline-flex items-center justify-center gap-1 whitespace-nowrap"
+                    >
+                      <svg
+                        className="w-3 h-3 opacity-80 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                      <span>Edit</span>
+                    </button>
+                  )}
+                  {onOpenCreateModal && (
+                    <button
+                      type="button"
+                      onClick={onOpenCreateModal}
+                      title="Create a new custom dataset with tables"
+                      className="h-6.5 px-2 text-xs rounded-md border border-blue-500/40 text-blue-400 hover:bg-blue-500/10 transition-colors font-semibold cursor-pointer inline-flex items-center justify-center gap-1 whitespace-nowrap"
+                    >
+                      + New
+                    </button>
+                  )}
+                  {onResetDatabase && (
+                    <button
+                      type="button"
+                      onClick={onResetDatabase}
+                      title="Reset database tables and data to defaults"
+                      className="h-6.5 px-2 text-xs rounded-md border border-rose-500/40 text-rose-400 hover:bg-rose-500/10 transition-colors font-semibold cursor-pointer inline-flex items-center justify-center gap-1 whitespace-nowrap"
+                    >
+                      Reset DB
+                    </button>
+                  )}
+                </div>
+              ) : (
                 <button
                   type="button"
-                  onClick={() => onEditDataset(activeDataset)}
-                  title="Edit currently selected dataset"
-                  className="text-[11px] px-2 py-0.5 rounded border border-purple-500/40 text-purple-400 hover:bg-purple-500/10 transition-colors font-medium cursor-pointer flex items-center gap-1"
+                  onClick={() => setIsMoreMenuOpen((prev) => !prev)}
+                  title="Click for more options"
+                  aria-label="Click for more options"
+                  className="h-7 px-2 rounded-md  text-zinc-300 hover:bg-zinc-500/10 flex items-center justify-center transition-colors cursor-pointer text-xs font-medium"
                 >
-                  <svg
-                    className="w-3 h-3 opacity-80"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                    />
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
                   </svg>
-                  <span>Edit</span>
                 </button>
               )}
-              {onOpenCreateModal && (
-                <button
-                  type="button"
-                  onClick={onOpenCreateModal}
-                  title="Create a new custom dataset with tables"
-                  className="text-[11px] px-2 py-0.5 rounded border border-blue-500/40 text-blue-400 hover:bg-blue-500/10 transition-colors font-medium cursor-pointer"
+
+              {/* 3-Dots Dropdown Popover */}
+              {isMoreMenuOpen && (
+                <div
+                  className="absolute right-0 top-8 z-30 w-44 rounded-xl border p-1.5 shadow-xl space-y-1"
+                  style={{
+                    background: "var(--panel)",
+                    borderColor: "var(--border)",
+                    color: "var(--foreground)",
+                  }}
                 >
-                  + New
-                </button>
-              )}
-              {onResetDatabase && (
-                <button
-                  type="button"
-                  onClick={onResetDatabase}
-                  title="Reset database tables and data to defaults"
-                  className="text-[11px] px-2 py-0.5 rounded border border-rose-500/40 text-rose-400 hover:bg-rose-500/10 transition-colors font-medium cursor-pointer"
-                >
-                  Reset DB
-                </button>
+                  {onEditDataset && activeDataset && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMoreMenuOpen(false);
+                        onEditDataset(activeDataset);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 hover:bg-[var(--surface-hover)] text-purple-400 cursor-pointer"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      <span>Edit Dataset</span>
+                    </button>
+                  )}
+                  {onOpenCreateModal && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMoreMenuOpen(false);
+                        onOpenCreateModal();
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 hover:bg-[var(--surface-hover)] text-blue-400 cursor-pointer"
+                    >
+                      <span className="font-bold text-sm">+</span>
+                      <span>New Dataset</span>
+                    </button>
+                  )}
+                  {onResetDatabase && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMoreMenuOpen(false);
+                        onResetDatabase();
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 hover:bg-[var(--surface-hover)] text-rose-400 cursor-pointer"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      <span>Reset Database</span>
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -207,7 +304,7 @@ export function InputPanel({
               value={nlInput}
               onChange={(event) => onNlInputChange(event.target.value)}
               placeholder='Speak via mic above or type (e.g. "How many customers are there?")'
-              rows={2}
+              rows={3}
               className="w-full p-2.5 pr-8 text-sm resize-y rounded-lg border focus:outline-none"
               style={{
                 background: "var(--panel)",
@@ -216,7 +313,7 @@ export function InputPanel({
               }}
               aria-label="Natural language input"
             />
-            {isSupported && (
+            {/* {isSupported && (
               <button
                 type="button"
                 onClick={isListening ? stopListening : handleStartVoice}
@@ -237,7 +334,7 @@ export function InputPanel({
                   <path d="M5.5 9.643a.75.75 0 00-1.5 0V10c0 3.06 2.29 5.585 5.25 5.954V17.5h-1.5a.75.75 0 000 1.5h4.5a.75.75 0 000-1.5h-1.5v-1.546A6.001 6.001 0 0016 10v-.357a.75.75 0 00-1.5 0V10a4.5 4.5 0 01-9 0v-.357z" />
                 </svg>
               </button>
-            )}
+            )} */}
           </div>
 
           <button
@@ -275,7 +372,7 @@ export function InputPanel({
               </>
             ) : (
               <span className="flex items-center gap-1.5">
-                <span>Translate &amp; Run</span>
+                <span className="text-xs">Translate &amp; Run</span>
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
@@ -362,22 +459,22 @@ export function InputPanel({
           )}
         </div>
 
-        {/* Sample Inputs */}
+        {/* Pic 2: Sample Inputs (Bigger font 1-2 steps + increased space) */}
         <div>
           <h2
-            className="font-bold mb-2 text-sm"
+            className="font-bold mb-2.5 text-sm"
             style={{ color: "var(--foreground)" }}
           >
             Sample Inputs
           </h2>
-          <ul className="space-y-1.5">
+          <ul className="space-y-2.5">
             {examples.map((example) => (
               <li key={example.id}>
                 <button
                   onClick={() => {
                     onExampleSelect(example.question, example.sql);
                   }}
-                  className="w-full text-left text-xs p-2.5 rounded-lg border transition-colors cursor-pointer hover:opacity-90"
+                  className="w-full text-left text-sm p-3 rounded-xl border transition-all cursor-pointer hover:border-[var(--accent)] hover:bg-[var(--surface-hover)] font-medium leading-snug flex items-start"
                   style={{
                     background: "var(--panel)",
                     borderColor: "var(--border)",
@@ -385,15 +482,17 @@ export function InputPanel({
                   }}
                   title={`Expected: ${example.expected}`}
                 >
-                  <span className="opacity-50 font-mono mr-1">{example.id}.</span>{" "}
-                  {example.question}
+                  <span className="opacity-60 font-mono text-xs mr-2 shrink-0 mt-0.5">
+                    {example.id}.
+                  </span>
+                  <span>{example.question}</span>
                 </button>
               </li>
             ))}
           </ul>
         </div>
 
-        {/* History */}
+        {/* Pic 6: History (High contrast visibility & skip empty boxes) */}
         <div>
           <h2
             className="font-bold mb-2 text-sm"
@@ -401,32 +500,51 @@ export function InputPanel({
           >
             History
           </h2>
-          {history.length === 0 && (
-            <p className="text-xs opacity-50" style={{ color: "var(--muted)" }}>
-              No queries yet.
+          {history.filter((item) => item && (item.question?.trim() || item.sql?.trim())).length === 0 ? (
+            <p className="text-xs opacity-60" style={{ color: "var(--muted)" }}>
+              No query history recorded yet.
             </p>
+          ) : (
+            <ul className="space-y-2">
+              {history
+                .filter((item) => item && (item.question?.trim() || item.sql?.trim()))
+                .slice(0, 5)
+                .map((item) => (
+                  <li key={item.id}>
+                    <button
+                      onClick={() => onSelectHistory(item)}
+                      className="w-full text-left p-3 rounded-xl border transition-all cursor-pointer hover:border-[var(--accent)] hover:bg-[var(--surface-hover)] shadow-xs"
+                      style={{
+                        background: "var(--panel)",
+                        borderColor: "var(--border)",
+                        color: "var(--foreground)",
+                      }}
+                    >
+                      <div className="flex items-center justify-between text-[11px] font-mono opacity-80 mb-1">
+                        <span style={{ color: "var(--muted)" }}>
+                          {item.time} &middot; {item.rows} row{item.rows !== 1 ? "s" : ""}
+                        </span>
+                        {item.statementType && (
+                          <span
+                            className="text-[9px] px-1.5 py-0.2 rounded font-bold uppercase border"
+                            style={{
+                              background: "var(--surface-subtle)",
+                              borderColor: "var(--border)",
+                              color: "var(--accent)",
+                            }}
+                          >
+                            {item.statementType}
+                          </span>
+                        )}
+                      </div>
+                      <span className="font-semibold text-xs block text-[var(--foreground)] leading-snug line-clamp-2">
+                        {item.question?.trim() || item.sql}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+            </ul>
           )}
-          <ul className="space-y-1">
-            {history.slice(0, 8).map((item) => (
-              <li key={item.id}>
-                <button
-                  onClick={() => onSelectHistory(item)}
-                  className="w-full text-left text-xs p-2.5 rounded-lg border truncate transition-colors cursor-pointer hover:opacity-90"
-                  style={{
-                    background: "var(--panel)",
-                    borderColor: "var(--border)",
-                    color: "var(--foreground)",
-                  }}
-                >
-                  <span className="opacity-60 font-mono text-[10px]" style={{ color: "var(--muted)" }}>
-                    {item.time} &middot; {item.rows} rows
-                  </span>
-                  <br />
-                  <span className="font-semibold">{item.question}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
         </div>
       </div>
 

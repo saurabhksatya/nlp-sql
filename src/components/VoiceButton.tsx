@@ -61,25 +61,24 @@ export function VoiceButton({
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-1.5">
         <button
           type="button"
           onClick={isListening ? onStopListening : onStartListening}
           disabled={isTranslating}
-          className={`relative flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer shadow-xs ${
-            isListening
+          className={`relative flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 h-8.5 rounded-md text-xs font-semibold transition-all duration-200 cursor-pointer shadow-xs ${isListening
               ? "bg-red-600 hover:bg-red-700 text-white shadow-red-600/20"
               : isTranslating
                 ? "bg-zinc-800 text-white cursor-wait opacity-75"
                 : "hover:opacity-95 shadow-md"
-          }`}
+            }`}
           style={
             !isListening && !isTranslating
               ? {
-                  background: "var(--accent-gradient, var(--accent))",
-                  color: "var(--accent-foreground)",
-                }
+                background: "var(--accent-gradient, var(--accent))",
+                color: "var(--accent-foreground)",
+              }
               : undefined
           }
           aria-label={isListening ? "Stop listening" : "Speak to SQL"}

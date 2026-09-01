@@ -3,6 +3,7 @@ import type { Table } from "@/lib/schema";
 import type { PipelineStep, Row } from "@/lib/sqlEngine";
 import type { Tab, ThemeId } from "./nlSqlTypes";
 import { Theory } from "./Theory";
+import { ChenERDiagram } from "./ChenERDiagram";
 
 function getStageBadgeClass(stage: string, theme: ThemeId = "eclipse"): string {
   if (theme === "volt") {
@@ -367,58 +368,83 @@ function SchemaView({
       <h2 className="font-bold mb-3 text-base" style={{ color: "var(--foreground)" }}>
         Database Schema
       </h2>
+
+      {/* Grid 2-per-row layout (restored) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {schema.map((table) => (
           <div
             key={table.name}
-            className="p-3 rounded-lg border"
+            className="p-3.5 rounded-xl border flex flex-col justify-between overflow-hidden"
             style={{
               background: "var(--surface-subtle)",
               borderColor: "var(--border)",
             }}
           >
-            <h3 className="font-mono font-bold text-base mb-1" style={{ color: "var(--foreground)" }}>
-              {table.name}
-            </h3>
-            <table className="text-sm w-full">
-              <tbody>
-                {table.columns.map((column) => (
-                  <tr key={column.name}>
-                    <td className="py-0.5 pr-2 font-mono" style={{ color: "var(--foreground)" }}>
-                      {column.name}
-                    </td>
-                    <td className="opacity-60" style={{ color: "var(--muted)" }}>
-                      {column.type}
-                    </td>
-                    <td className="text-right font-mono text-xs">
-                      {column.pk && (
-                        <span className="font-bold text-amber-500 bg-amber-500/15 border border-amber-500/30 px-1 py-0.5 rounded mr-1">
-                          PK
-                        </span>
-                      )}
-                      {column.fk && (
-                        <span className="text-sky-500 bg-sky-500/15 border border-sky-500/30 px-1 py-0.5 rounded">
-                          FK→{column.fk.table}.{column.fk.column}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="text-xs opacity-60 mt-1.5" style={{ color: "var(--muted)" }}>
+            <div>
+              <h3
+                className="font-mono font-bold text-base mb-2 border-b pb-1.5 flex items-center justify-between"
+                style={{ color: "var(--foreground)", borderColor: "var(--border)" }}
+              >
+                <span>{table.name}</span>
+                <span className="text-[11px] font-normal font-sans opacity-60">
+                  {table.columns.length} cols
+                </span>
+              </h3>
+
+              {/* Slider / Scroll track inside EACH box when text overflows */}
+              <div className="overflow-x-auto scrollbar-thin max-w-full pb-1">
+                <table className="text-sm w-full min-w-full">
+                  <tbody>
+                    {table.columns.map((column) => (
+                      <tr key={column.name}>
+                        <td
+                          className="py-1 pr-2 font-mono text-sm whitespace-nowrap"
+                          style={{ color: "var(--foreground)" }}
+                        >
+                          {column.name}
+                        </td>
+                        <td
+                          className="opacity-60 text-xs whitespace-nowrap pr-2"
+                          style={{ color: "var(--muted)" }}
+                        >
+                          {column.type}
+                        </td>
+                        <td className="text-right font-mono text-xs whitespace-nowrap">
+                          {column.pk && (
+                            <span className="font-bold text-amber-500 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded mr-1 inline-block">
+                              PK
+                            </span>
+                          )}
+                          {column.fk && (
+                            <span className="text-sky-500 bg-sky-500/15 border border-sky-500/30 px-1.5 py-0.5 rounded text-[11px] inline-block">
+                              FK→{column.fk.table}.{column.fk.column}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <p
+              className="text-xs opacity-60 mt-3 pt-1 border-t"
+              style={{ color: "var(--muted)", borderColor: "var(--border)" }}
+            >
               {table.rows.length} sample rows
             </p>
           </div>
         ))}
       </div>
-      <div className="mt-4">
+
+      {/* Chen ER Diagram Format (Enlarged fonts & shapes) */}
+      <div className="mt-5">
         <h3 className="font-bold text-base mb-2" style={{ color: "var(--foreground)" }}>
-          ER diagram
+          Entity-Relationship Diagram
         </h3>
-        <MermaidDiagram source={source} dark={dark} />
+        <ChenERDiagram schema={schema} />
         <details className="mt-3">
-          <summary className="cursor-pointer text-sm font-semibold" style={{ color: "var(--foreground)" }}>
+          <summary className="cursor-pointer text-sm font-semibold opacity-70 hover:opacity-100" style={{ color: "var(--foreground)" }}>
             Mermaid ER source
           </summary>
           <pre
@@ -450,6 +476,14 @@ function MermaidDiagram({ source, dark }: { source: string; dark: boolean }) {
           startOnLoad: false,
           securityLevel: "strict",
           theme: dark ? "dark" : "neutral",
+          themeVariables: {
+            fontSize: "16px",
+            fontFamily: "var(--font-sans), system-ui, sans-serif",
+          },
+          er: {
+            fontSize: 16,
+            useMaxWidth: false,
+          },
         });
         return mermaid.render(renderId, source);
       })
@@ -469,7 +503,7 @@ function MermaidDiagram({ source, dark }: { source: string; dark: boolean }) {
   return (
     <div
       ref={diagramRef}
-      className="panel min-h-40 overflow-x-auto p-3 [&_svg]:mx-auto [&_svg]:max-w-full"
+      className="panel min-h-64 overflow-x-auto p-4 [&_svg]:mx-auto [&_svg]:min-w-[550px] [&_svg_text]:text-sm [&_svg_text]:font-semibold"
       style={{
         background: "var(--surface-subtle)",
         borderColor: "var(--border)",
