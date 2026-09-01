@@ -504,14 +504,6 @@ export function erDiagramMermaid(schema: Table[] = SCHEMA): string {
   return out;
 }
 
-/**
- * Generates a standard Chen-style ER diagram in Graphviz DOT format.
- * - Entities are rectangles ([shape=box])
- * - Relationships are diamonds ([shape=diamond])
- * - Attributes are ellipses ([shape=ellipse])
- * - Primary Key attributes have underlined labels (<<u>NAME</u>>)
- * - Cardinality annotations (1, N) are attached to edges
- */
 export function erDiagramChenDot(schema: Table[] = SCHEMA, dark: boolean = true): string {
   if (!schema || schema.length === 0) {
     return `graph ER_Chen {
@@ -524,7 +516,6 @@ export function erDiagramChenDot(schema: Table[] = SCHEMA, dark: boolean = true)
 
   const lines: string[] = [];
   lines.push("graph ER_Chen {");
-  lines.push("  // Global graph configuration");
   lines.push("  layout=dot;");
   lines.push("  splines=spline;");
   lines.push('  bgcolor="transparent";');
@@ -534,8 +525,6 @@ export function erDiagramChenDot(schema: Table[] = SCHEMA, dark: boolean = true)
   lines.push(`  edge [fontname="Arial, Helvetica, sans-serif", fontsize=10, color="${dark ? "#64748b" : "#94a3b8"}", fontcolor="${dark ? "#93c5fd" : "#2563eb"}", penwidth=1.3];`);
   lines.push("");
 
-  // Entities (Sharp-corner Rectangles)
-  lines.push("  // Entities (Sharp-corner Rectangles)");
   const entityFill = dark ? "#1e3a8a" : "#dbeafe";
   const entityBorder = dark ? "#3b82f6" : "#2563eb";
   const entityFont = dark ? "#ffffff" : "#1e3a8a";
@@ -548,8 +537,6 @@ export function erDiagramChenDot(schema: Table[] = SCHEMA, dark: boolean = true)
   }
   lines.push("");
 
-  // Attributes
-  lines.push("  // Attributes (Ellipses)");
   const attrFill = dark ? "#1e293b" : "#f8fafc";
   const attrBorder = dark ? "#475569" : "#cbd5e1";
   const attrFont = dark ? "#f1f5f9" : "#0f172a";
@@ -570,8 +557,6 @@ export function erDiagramChenDot(schema: Table[] = SCHEMA, dark: boolean = true)
   }
   lines.push("");
 
-  // Connections between Entities and Attributes
-  lines.push("  // Entity to Attribute connections");
   for (const t of schema) {
     const safeTableName = (t.name || "unnamed").replace(/[^\w]/g, "_").toLowerCase();
     for (const c of t.columns || []) {
@@ -582,8 +567,6 @@ export function erDiagramChenDot(schema: Table[] = SCHEMA, dark: boolean = true)
   }
   lines.push("");
 
-  // Relationships derived from Foreign Keys
-  lines.push("  // Relationships (Diamonds)");
   const relFill = dark ? "#064e3b" : "#d1fae5";
   const relBorder = dark ? "#10b981" : "#059669";
   const relFont = dark ? "#ffffff" : "#064e3b";
@@ -604,8 +587,6 @@ export function erDiagramChenDot(schema: Table[] = SCHEMA, dark: boolean = true)
           if (!processedRels.has(relKey)) {
             processedRels.add(relKey);
             const relId = `rel_${safeTableName}_${safeTargetName}_${c.name.replace(/[^\w]/g, "_").toLowerCase()}`;
-            
-            // Derive a descriptive relationship name
             let relName = "REFERENCES";
             const lowerTable = t.name.toLowerCase();
             const lowerCol = c.name.toLowerCase();
@@ -615,16 +596,10 @@ export function erDiagramChenDot(schema: Table[] = SCHEMA, dark: boolean = true)
               relName = "PLACES";
             } else if (lowerCol.includes("product") || lowerCol.includes("item")) {
               relName = "INCLUDES";
-            } else if (lowerCol.includes("farmer") || lowerCol.includes("owner")) {
-              relName = "OWNS";
-            } else if (lowerCol.includes("crop") || lowerCol.includes("farm")) {
-              relName = "CULTIVATES";
             }
 
             lines.push(`  ${relId} [label="${relName}"];`);
-            // Target table is the '1' parent side
             lines.push(`  entity_${safeTargetName} -- ${relId} [label="1"];`);
-            // Source table is the 'N' child side
             lines.push(`  ${relId} -- entity_${safeTableName} [label="N", penwidth=2];`);
           }
         }
@@ -635,4 +610,3 @@ export function erDiagramChenDot(schema: Table[] = SCHEMA, dark: boolean = true)
   lines.push("}");
   return lines.join("\n");
 }
-
