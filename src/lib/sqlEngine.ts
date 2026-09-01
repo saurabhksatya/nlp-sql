@@ -1049,7 +1049,7 @@ function executeSelect(
     rows = rows.filter((r) => fn(resolveCol(r, p.where!.column), val));
     push(
       "WHERE",
-      `Filter σ(${p.where.column} ${p.where.op} ${p.where.value})`,
+      `Filter (${p.where.column} ${p.where.op} ${p.where.value})`,
       `Selection predicate applied to each row: kept ${rows.length} of ${before} rows (O(n) scan).`,
       rows.slice(0, 50),
       Object.keys(rows[0] ?? {}),
@@ -1069,7 +1069,7 @@ function executeSelect(
     groupKeys = [...map.keys()];
     push(
       "GROUP BY",
-      `Group γ(${p.groupBy})`,
+      `Group (${p.groupBy})`,
       `Rows hashed into ${groups.length} groups keyed by \`${p.groupBy}\` (hash aggregation, expected O(n)).`,
       groups.map((g) => ({
         [p.groupBy!]: resolveCol(g[0], p.groupBy!) ?? 0,
@@ -1199,7 +1199,7 @@ function executeSelect(
     );
     push(
       "SELECT",
-      "Project π",
+      "Project Columns",
       `Projection keeps only requested columns: ${p.select.join(", ")}.`,
       finalRows.slice(0, 50),
       outCols,
@@ -1440,7 +1440,7 @@ function executeUpdate(
 
     push(
       "WHERE",
-      `Filter σ(${p.where.column} ${p.where.op} ${p.where.value})`,
+      `Filter (${p.where.column} ${p.where.op} ${p.where.value})`,
       `Located ${matchIndices.length} matching candidate row(s) to update out of ${table.rows.length} total rows.`,
       matchIndices.map((i) => table.rows[i]),
       colNames,
@@ -1546,7 +1546,7 @@ function executeDelete(
 
     push(
       "WHERE",
-      `Filter σ(${p.where.column} ${p.where.op} ${p.where.value})`,
+      `Filter (${p.where.column} ${p.where.op} ${p.where.value})`,
       `Identified ${toDelete.length} row(s) matching delete criteria out of ${table.rows.length} total rows.`,
       toDelete,
       colNames,

@@ -174,7 +174,7 @@ export function GuideModal({ isOpen, onClose }: GuideModalProps) {
                     Visual Relational Algebra Engine
                   </h4>
                   <p className="text-xs opacity-85 leading-relaxed" style={{ color: "var(--foreground)" }}>
-                    Visualizes how database engines evaluate relational queries through selection (σ), projection (π), join (⋈), and grouping (γ) operators.
+                    Visualizes how database engines evaluate relational queries through selection (WHERE), projection (SELECT), join, and grouping (GROUP BY) operators.
                   </p>
                 </div>
               </div>

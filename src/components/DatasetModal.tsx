@@ -7,7 +7,7 @@ import {
   type Dataset,
   type Table,
   cloneSchema,
-  erDiagramMermaid,
+  erDiagramChenDot,
 } from "@/lib/schema";
 import { executeSQL } from "@/lib/sqlEngine";
 import { generateDatasetSQL } from "@/lib/exportUtils";
@@ -16,6 +16,7 @@ interface DatasetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreateDataset: (dataset: Dataset) => void;
+  onDeleteDataset?: (id: string) => void;
   datasetToEdit?: Dataset | null;
   dark?: boolean;
 }
@@ -59,6 +60,7 @@ export function DatasetModal({
   isOpen,
   onClose,
   onCreateDataset,
+  onDeleteDataset,
   datasetToEdit,
   dark = false,
 }: DatasetModalProps) {
@@ -77,8 +79,8 @@ export function DatasetModal({
         { name: "price", type: "REAL" },
       ],
       rows: [
-        { id: 1, name: "Item Alpha", price: 100 },
-        { id: 2, name: "Item Beta", price: 250 },
+        { id: 1, name: "Item A", price: 100 },
+        { id: 2, name: "Item B", price: 250 },
       ],
     },
   ]);
@@ -111,8 +113,8 @@ export function DatasetModal({
               { name: "price", type: "REAL" },
             ],
             rows: [
-              { id: 1, name: "Item Alpha", price: 100 },
-              { id: 2, name: "Item Beta", price: 250 },
+              { id: 1, name: "Item A", price: 100 },
+              { id: 2, name: "Item B", price: 250 },
             ],
           },
         ]);
@@ -189,9 +191,9 @@ export function DatasetModal({
   };
 
   // Live ER diagram calculation for preview
-  const liveMermaid = useMemo(() => {
-    return erDiagramMermaid(tables);
-  }, [tables]);
+  const liveChenDot = useMemo(() => {
+    return erDiagramChenDot(tables, dark);
+  }, [tables, dark]);
 
   // Handle submission
   const handleSave = () => {
@@ -642,7 +644,7 @@ export function DatasetModal({
                     Auto-generated from tables &amp; relationships
                   </span>
                 </div>
-                <MermaidDiagramPreview source={liveMermaid} dark={dark} />
+                <ChenDiagramPreview dot={liveChenDot} />
               </div>
             </div>
           )}
@@ -695,6 +697,23 @@ export function DatasetModal({
           >
             Cancel
           </button>
+          {datasetToEdit?.isCustom && onDeleteDataset && (
+            <button
+              type="button"
+              onClick={() => {
+                if (datasetToEdit) {
+                  onDeleteDataset(datasetToEdit.id);
+                  onClose();
+                }
+              }}
+              className="px-4 py-2 rounded-lg text-xs font-semibold border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer flex items-center gap-1.5"
+            >
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span>Delete Dataset</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={handleSave}
@@ -713,31 +732,25 @@ export function DatasetModal({
   );
 }
 
-function MermaidDiagramPreview({
-  source,
-  dark,
-}: {
-  source: string;
-  dark: boolean;
-}) {
+let modalVizPromise: Promise<{ renderString: (src: string, opts?: { format: string }) => string }> | null = null;
+function getModalVizInstance() {
+  if (!modalVizPromise) {
+    modalVizPromise = import("@viz-js/viz").then(({ instance }) => instance());
+  }
+  return modalVizPromise;
+}
+
+function ChenDiagramPreview({ dot }: { dot: string }) {
   const diagramRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
-    const renderId = "preview_er_" + Math.random().toString(36).slice(2, 9);
-    void import("mermaid")
-      .then(({ default: mermaid }) => {
+    getModalVizInstance()
+      .then((viz) => {
         if (cancelled || !diagramRef.current) return;
-        mermaid.initialize({
-          startOnLoad: false,
-          securityLevel: "strict",
-          theme: dark ? "dark" : "neutral",
-        });
-        return mermaid.render(renderId, source);
-      })
-      .then((result) => {
-        if (cancelled || !diagramRef.current || !result) return;
-        diagramRef.current.innerHTML = result.svg;
+        const svg = viz.renderString(dot, { format: "svg" });
+        if (cancelled || !diagramRef.current) return;
+        diagramRef.current.innerHTML = svg;
       })
       .catch((err) => {
         if (cancelled || !diagramRef.current) return;
@@ -746,7 +759,7 @@ function MermaidDiagramPreview({
     return () => {
       cancelled = true;
     };
-  }, [source, dark]);
+  }, [dot]);
 
   return (
     <div
@@ -756,7 +769,7 @@ function MermaidDiagramPreview({
         background: "var(--panel)",
         borderColor: "var(--border)",
       }}
-      aria-label="ER diagram preview"
+      aria-label="Chen ER diagram preview"
     />
   );
 }

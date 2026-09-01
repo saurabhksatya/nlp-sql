@@ -99,22 +99,22 @@ export function Theory() {
         </h2>
         <ul className="list-disc list-inside space-y-1 opacity-85 text-[11px]" style={{ color: "var(--foreground)" }}>
           <li>
-            <strong>Projection π(R):</strong> Selects a subset of attributes (columns) from relation R.
+            <strong>Projection (SELECT):</strong> Selects a subset of attributes (columns) from relation R.
           </li>
           <li>
-            <strong>Selection σ_θ(R):</strong> Filters tuples (rows) satisfying propositional condition θ.
+            <strong>Selection (WHERE):</strong> Filters tuples (rows) satisfying a predicate condition.
           </li>
           <li>
-            <strong>Join R ⋈_θ S:</strong> Combines tuples from R and S satisfying predicate θ (Cartesian product followed by selection).
+            <strong>Join (JOIN):</strong> Combines tuples from relations R and S satisfying a matching condition (Cartesian product followed by selection).
           </li>
           <li>
-            <strong>Aggregation &amp; Grouping γ_L(R):</strong> Partitions relation R by grouping attributes and applies summary aggregate functions (COUNT, SUM, AVG, MIN, MAX).
+            <strong>Aggregation &amp; Grouping (GROUP BY):</strong> Partitions relation R by grouping attributes and applies summary aggregate functions (COUNT, SUM, AVG, MIN, MAX).
           </li>
           <li>
-            <strong>Deduplication δ(R):</strong> Removes duplicate tuples (DISTINCT semantics).
+            <strong>Deduplication (DISTINCT):</strong> Removes duplicate tuples (DISTINCT semantics).
           </li>
           <li>
-            <strong>Sorting τ_L(R):</strong> Orders output tuples by sorting key specification L.
+            <strong>Sorting (ORDER BY):</strong> Orders output tuples by sorting key specification.
           </li>
         </ul>
       </section>

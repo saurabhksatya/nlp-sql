@@ -11,7 +11,7 @@ import { GuideModal } from "@/components/GuideModal";
 import {
   DATASETS,
   getDefaultSchema,
-  erDiagramMermaid,
+  erDiagramChenDot,
   cloneSchema,
   type Table,
   type Dataset,
@@ -265,6 +265,19 @@ export default function Home() {
     setTab("schema");
   }, []);
 
+  const handleDeleteDataset = useCallback((id: string) => {
+    setCustomDatasets((prev) => {
+      const next = prev.filter((d) => d.id !== id);
+      try {
+        localStorage.setItem(CUSTOM_DATASETS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+    setDatasetToEdit((current) => (current?.id === id ? null : current));
+    // If deleting the currently selected dataset, fall back to first built-in
+    setSelectedDatasetId((current) => (current === id ? "ecommerce" : current));
+  }, []);
+
   const play = useCallback(() => {
     if (!steps.length) return;
     if (playing) {
@@ -418,9 +431,109 @@ export default function Home() {
     download(new Blob([markdown], { type: "text/markdown" }), "report.md");
   }, [sql, steps, finalRows, columns, error]);
 
-  const mermaidSource = useMemo(
-    () => erDiagramMermaid(activeSchema),
-    [activeSchema],
+  // Left panel resize state
+  const [leftPanelWidth, setLeftPanelWidth] = useState(340);
+  const [isDraggingLeft, setIsDraggingLeft] = useState(false);
+  const dragStartLeftXRef = useRef(0);
+  const dragStartLeftWidthRef = useRef(340);
+
+  const handleStartResizeLeft = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      setIsDraggingLeft(true);
+      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+      dragStartLeftXRef.current = clientX;
+      dragStartLeftWidthRef.current = leftPanelWidth;
+      e.preventDefault();
+    },
+    [leftPanelWidth],
+  );
+
+  useEffect(() => {
+    if (!isDraggingLeft) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = e.clientX - dragStartLeftXRef.current;
+      const newWidth = Math.max(260, Math.min(550, dragStartLeftWidthRef.current + delta));
+      setLeftPanelWidth(newWidth);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!e.touches[0]) return;
+      const delta = e.touches[0].clientX - dragStartLeftXRef.current;
+      const newWidth = Math.max(260, Math.min(550, dragStartLeftWidthRef.current + delta));
+      setLeftPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingLeft(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener("touchmove", handleTouchMove);
+    document.addEventListener("touchend", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleMouseUp);
+    };
+  }, [isDraggingLeft]);
+
+  // Right panel resize state
+  const [rightPanelWidth, setRightPanelWidth] = useState(340);
+  const [isDraggingRight, setIsDraggingRight] = useState(false);
+  const dragStartXRef = useRef(0);
+  const dragStartWidthRef = useRef(340);
+
+  const handleStartResizeRight = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      setIsDraggingRight(true);
+      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+      dragStartXRef.current = clientX;
+      dragStartWidthRef.current = rightPanelWidth;
+      e.preventDefault();
+    },
+    [rightPanelWidth],
+  );
+
+  useEffect(() => {
+    if (!isDraggingRight) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = dragStartXRef.current - e.clientX;
+      const newWidth = Math.max(260, Math.min(650, dragStartWidthRef.current + delta));
+      setRightPanelWidth(newWidth);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!e.touches[0]) return;
+      const delta = dragStartXRef.current - e.touches[0].clientX;
+      const newWidth = Math.max(260, Math.min(650, dragStartWidthRef.current + delta));
+      setRightPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingRight(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener("touchmove", handleTouchMove);
+    document.addEventListener("touchend", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleMouseUp);
+    };
+  }, [isDraggingRight]);
+
+  const dotSource = useMemo(
+    () => erDiagramChenDot(activeSchema, isDark),
+    [activeSchema, isDark],
   );
   const current = steps[activeStep];
 
@@ -478,68 +591,64 @@ export default function Home() {
       {/* Top Bar with Collapsible Theme Selector */}
       <AppHeader theme={theme} onThemeChange={handleThemeChange} />
 
-      <main className="flex-1 flex flex-col lg:flex-row gap-0 p-4 relative overflow-hidden">
-        {/* Left Sidebar: Input Panel */}
-        <div
-          style={{ width: leftCollapsed ? "0px" : `${leftWidth}px` }}
-          className={`flex flex-col shrink-0 transition-[width] duration-150 ease-out overflow-hidden ${mobileTab !== "input" ? "hidden lg:flex" : "flex w-full"
-            }`}
-        >
-          <div className="pr-2 h-full flex flex-col">
-            <InputPanel
-              datasets={allDatasets}
-              selectedDatasetId={selectedDataset.id}
-              onDatasetChange={changeDataset}
-              onOpenCreateModal={handleOpenCreateModal}
-              onEditDataset={handleOpenEditModal}
-              examples={selectedDataset.examples}
-              nlInput={nlInput}
-              onNlInputChange={setNlInput}
-              onTranslate={() => translateNL()}
-              nlInfo={nlInfo}
-              sql={sql}
-              onSqlChange={setSql}
-              onRunQuery={() => runQuery()}
-              onExampleSelect={selectExample}
-              onResetDatabase={resetDatabase}
-              error={error}
-              history={history}
-              onSelectHistory={selectHistory}
-              onVoiceTranslateAndRun={(params) => translateNL(params)}
-              isTranslating={isTranslating}
-              voiceFeedback={voiceFeedback}
-              onToggleVoiceFeedback={setVoiceFeedback}
-              onOpenGuide={() => setIsGuideModalOpen(true)}
-              theme={theme}
-            />
-          </div>
+      <main
+        className="flex-1 grid grid-cols-1 lg:grid-cols-[var(--left-panel-width)_12px_minmax(0,1fr)_12px_var(--right-panel-width)] gap-y-4 lg:gap-x-2 gap-x-4 p-4 items-start"
+        style={{
+          ["--left-panel-width" as string]: `${leftPanelWidth}px`,
+          ["--right-panel-width" as string]: `${rightPanelWidth}px`,
+          userSelect: isDraggingLeft || isDraggingRight ? "none" : undefined,
+        }}
+      >
+        {/* Left Sidebar: Input Panel with single Guide button at bottom-left */}
+        <div className={`flex flex-col ${mobileTab !== "input" ? "hidden lg:flex" : "flex"}`}>
+          <InputPanel
+            datasets={allDatasets}
+            selectedDatasetId={selectedDataset.id}
+            onDatasetChange={changeDataset}
+            onOpenCreateModal={handleOpenCreateModal}
+            onEditDataset={handleOpenEditModal}
+            examples={selectedDataset.examples}
+            nlInput={nlInput}
+            onNlInputChange={setNlInput}
+            onTranslate={() => translateNL()}
+            nlInfo={nlInfo}
+            sql={sql}
+            onSqlChange={setSql}
+            onRunQuery={() => runQuery()}
+            onExampleSelect={selectExample}
+            onResetDatabase={resetDatabase}
+            error={error}
+            history={history}
+            onSelectHistory={selectHistory}
+            onVoiceTranslateAndRun={(params) => translateNL(params)}
+            isTranslating={isTranslating}
+            voiceFeedback={voiceFeedback}
+            onToggleVoiceFeedback={setVoiceFeedback}
+            onOpenGuide={() => setIsGuideModalOpen(true)}
+            theme={theme}
+          />
         </div>
 
-        {/* Resizer Slider Handle 1: Between Left and Center */}
+        {/* Draggable Vertical Slider Handle between Left Sidebar and Center Canvas */}
         <div
-          onMouseDown={() => setIsResizingLeft(true)}
-          className="hidden lg:flex w-3 hover:w-4 items-center justify-center cursor-col-resize group relative z-10 shrink-0 transition-all"
-          title="Drag to resize panel or click arrow to collapse"
+          onMouseDown={handleStartResizeLeft}
+          onTouchStart={handleStartResizeLeft}
+          className={`hidden lg:flex items-center justify-center cursor-col-resize select-none h-full min-h-[400px] -mx-1 group relative transition-colors ${
+            isDraggingLeft ? "opacity-100" : "opacity-40 hover:opacity-100"
+          }`}
+          title="Drag slider left/right to adjust Left Panel width"
+          role="separator"
+          aria-label="Adjust width of input panel"
+          aria-orientation="vertical"
         >
-          <div className="w-1 h-12 rounded-full bg-zinc-600/30 group-hover:bg-[var(--accent)] transition-colors flex items-center justify-center">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setLeftCollapsed((prev) => !prev);
-              }}
-              title={leftCollapsed ? "Expand Left Panel" : "Collapse Left Panel"}
-              className="text-[9px] px-0.5 py-2 rounded bg-[var(--panel)] border border-[var(--border)] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer font-bold shadow-xs"
-            >
-              {leftCollapsed ? "▶" : "◀"}
-            </button>
-          </div>
+          <div className="w-1 h-12 rounded-full bg-zinc-600/30 group-hover:bg-[var(--accent)] transition-colors" />
         </div>
 
         {/* Center: Canvas / Visualization */}
         <div
-          className={`flex-1 flex flex-col gap-3 min-w-0 px-1 ${mobileTab !== "canvas" ? "hidden lg:flex" : "flex"
-            }`}
+          className={`flex-1 flex flex-col gap-3 min-w-0 px-1 ${
+            mobileTab !== "canvas" ? "hidden lg:flex" : "flex"
+          }`}
         >
           <VisualizationPanel
             tab={tab}
@@ -555,7 +664,7 @@ export default function Home() {
             onExportCSV={exportCSV}
             onExportReport={exportReport}
             sql={sql}
-            mermaidSource={mermaidSource}
+            dotSource={dotSource}
             schema={activeSchema}
             dark={isDark}
             theme={theme}
@@ -586,8 +695,9 @@ export default function Home() {
         {/* Right Sidebar: Explanation Panel */}
         <div
           style={{ width: rightCollapsed ? "0px" : `${rightWidth}px` }}
-          className={`flex flex-col shrink-0 transition-[width] duration-150 ease-out overflow-hidden ${mobileTab !== "tools" ? "hidden lg:flex" : "flex w-full"
-            }`}
+          className={`flex flex-col shrink-0 transition-[width] duration-150 ease-out overflow-hidden ${
+            mobileTab !== "tools" ? "hidden lg:flex" : "flex w-full"
+          }`}
         >
           <div className="pl-2 h-full flex flex-col">
             <ExplanationPanel
@@ -663,6 +773,7 @@ export default function Home() {
         isOpen={isDatasetModalOpen}
         onClose={() => setIsDatasetModalOpen(false)}
         onCreateDataset={handleSaveDataset}
+        onDeleteDataset={handleDeleteDataset}
         datasetToEdit={datasetToEdit}
         dark={isDark}
       />
