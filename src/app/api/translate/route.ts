@@ -105,7 +105,7 @@ Use exact table and column names matching the schema (case-insensitive). Return 
     let interpretation = "";
     let transcribedQuestion = body.question || "";
 
-    const modelName = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+    const modelName = "gemini-3.6-flash";
 
     if (body.audioBase64) {
       // Direct audio voice-to-SQL processing via Gemini multimodal capabilities
@@ -132,7 +132,7 @@ Use exact table and column names matching the schema (case-insensitive). Return 
           ],
         }),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("AI voice timeout")), 30000),
+          setTimeout(() => reject(new Error("AI voice timeout")), 90000),
         ),
       ]);
 
@@ -149,7 +149,7 @@ Use exact table and column names matching the schema (case-insensitive). Return 
           prompt: body.question!,
         }),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("AI timeout")), 30000),
+          setTimeout(() => reject(new Error("AI timeout")), 90000),
         ),
       ]);
 

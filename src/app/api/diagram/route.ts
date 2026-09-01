@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       }
 
       const google = createGoogleGenerativeAI({ apiKey });
-      const modelName = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+      const modelName = "gemini-3.6-flash";
 
       const systemPrompt = `You are an expert database designer. Output ONLY a valid Graphviz DOT script representing a Chen-style ER diagram according to the user's description.
 Rules for Chen ER Diagram in DOT:
