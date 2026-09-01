@@ -7,7 +7,7 @@ import {
   type Dataset,
   type Table,
   cloneSchema,
-  erDiagramMermaid,
+  erDiagramChenDot,
 } from "@/lib/schema";
 import { executeSQL } from "@/lib/sqlEngine";
 import { generateDatasetSQL } from "@/lib/exportUtils";
@@ -191,9 +191,9 @@ export function DatasetModal({
   };
 
   // Live ER diagram calculation for preview
-  const liveMermaid = useMemo(() => {
-    return erDiagramMermaid(tables);
-  }, [tables]);
+  const liveChenDot = useMemo(() => {
+    return erDiagramChenDot(tables, dark);
+  }, [tables, dark]);
 
   // Handle submission
   const handleSave = () => {
@@ -644,7 +644,7 @@ export function DatasetModal({
                     Auto-generated from tables &amp; relationships
                   </span>
                 </div>
-                <MermaidDiagramPreview source={liveMermaid} dark={dark} />
+                <ChenDiagramPreview dot={liveChenDot} />
               </div>
             </div>
           )}
@@ -732,31 +732,25 @@ export function DatasetModal({
   );
 }
 
-function MermaidDiagramPreview({
-  source,
-  dark,
-}: {
-  source: string;
-  dark: boolean;
-}) {
+let modalVizPromise: Promise<{ renderString: (src: string, opts?: { format: string }) => string }> | null = null;
+function getModalVizInstance() {
+  if (!modalVizPromise) {
+    modalVizPromise = import("@viz-js/viz").then(({ instance }) => instance());
+  }
+  return modalVizPromise;
+}
+
+function ChenDiagramPreview({ dot }: { dot: string }) {
   const diagramRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
-    const renderId = "preview_er_" + Math.random().toString(36).slice(2, 9);
-    void import("mermaid")
-      .then(({ default: mermaid }) => {
+    getModalVizInstance()
+      .then((viz) => {
         if (cancelled || !diagramRef.current) return;
-        mermaid.initialize({
-          startOnLoad: false,
-          securityLevel: "strict",
-          theme: dark ? "dark" : "neutral",
-        });
-        return mermaid.render(renderId, source);
-      })
-      .then((result) => {
-        if (cancelled || !diagramRef.current || !result) return;
-        diagramRef.current.innerHTML = result.svg;
+        const svg = viz.renderString(dot, { format: "svg" });
+        if (cancelled || !diagramRef.current) return;
+        diagramRef.current.innerHTML = svg;
       })
       .catch((err) => {
         if (cancelled || !diagramRef.current) return;
@@ -765,7 +759,7 @@ function MermaidDiagramPreview({
     return () => {
       cancelled = true;
     };
-  }, [source, dark]);
+  }, [dot]);
 
   return (
     <div
@@ -775,7 +769,7 @@ function MermaidDiagramPreview({
         background: "var(--panel)",
         borderColor: "var(--border)",
       }}
-      aria-label="ER diagram preview"
+      aria-label="Chen ER diagram preview"
     />
   );
 }

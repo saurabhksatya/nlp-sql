@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.51",
+    "@viz-js/viz": "^3.29.0",
     "ai": "^7.0.79",
     "mermaid": "^11.17.2",
     "next": "16.3.2",

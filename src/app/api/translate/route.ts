@@ -105,7 +105,7 @@ Use exact table and column names matching the schema (case-insensitive). Return 
     let interpretation = "";
     let transcribedQuestion = body.question || "";
 
-    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    const modelName = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 
     if (body.audioBase64) {
       // Direct audio voice-to-SQL processing via Gemini multimodal capabilities

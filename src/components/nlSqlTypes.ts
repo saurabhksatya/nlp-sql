@@ -121,7 +121,7 @@ export interface VisualizationPanelProps {
   onExportCSV: () => void;
   onExportReport: () => void;
   sql: string;
-  mermaidSource: string;
+  dotSource: string;
   schema: Table[];
   dark: boolean;
   theme?: ThemeId;

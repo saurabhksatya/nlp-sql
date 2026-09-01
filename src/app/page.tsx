@@ -11,7 +11,7 @@ import { GuideModal } from "@/components/GuideModal";
 import {
   DATASETS,
   getDefaultSchema,
-  erDiagramMermaid,
+  erDiagramChenDot,
   cloneSchema,
   type Table,
   type Dataset,
@@ -429,9 +429,109 @@ export default function Home() {
     download(new Blob([markdown], { type: "text/markdown" }), "report.md");
   }, [sql, steps, finalRows, columns, error]);
 
-  const mermaidSource = useMemo(
-    () => erDiagramMermaid(activeSchema),
-    [activeSchema],
+  // Left panel resize state
+  const [leftPanelWidth, setLeftPanelWidth] = useState(340);
+  const [isDraggingLeft, setIsDraggingLeft] = useState(false);
+  const dragStartLeftXRef = useRef(0);
+  const dragStartLeftWidthRef = useRef(340);
+
+  const handleStartResizeLeft = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      setIsDraggingLeft(true);
+      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+      dragStartLeftXRef.current = clientX;
+      dragStartLeftWidthRef.current = leftPanelWidth;
+      e.preventDefault();
+    },
+    [leftPanelWidth],
+  );
+
+  useEffect(() => {
+    if (!isDraggingLeft) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = e.clientX - dragStartLeftXRef.current;
+      const newWidth = Math.max(260, Math.min(550, dragStartLeftWidthRef.current + delta));
+      setLeftPanelWidth(newWidth);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!e.touches[0]) return;
+      const delta = e.touches[0].clientX - dragStartLeftXRef.current;
+      const newWidth = Math.max(260, Math.min(550, dragStartLeftWidthRef.current + delta));
+      setLeftPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingLeft(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener("touchmove", handleTouchMove);
+    document.addEventListener("touchend", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleMouseUp);
+    };
+  }, [isDraggingLeft]);
+
+  // Right panel resize state
+  const [rightPanelWidth, setRightPanelWidth] = useState(340);
+  const [isDraggingRight, setIsDraggingRight] = useState(false);
+  const dragStartXRef = useRef(0);
+  const dragStartWidthRef = useRef(340);
+
+  const handleStartResizeRight = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      setIsDraggingRight(true);
+      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+      dragStartXRef.current = clientX;
+      dragStartWidthRef.current = rightPanelWidth;
+      e.preventDefault();
+    },
+    [rightPanelWidth],
+  );
+
+  useEffect(() => {
+    if (!isDraggingRight) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = dragStartXRef.current - e.clientX;
+      const newWidth = Math.max(260, Math.min(650, dragStartWidthRef.current + delta));
+      setRightPanelWidth(newWidth);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!e.touches[0]) return;
+      const delta = dragStartXRef.current - e.touches[0].clientX;
+      const newWidth = Math.max(260, Math.min(650, dragStartWidthRef.current + delta));
+      setRightPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingRight(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener("touchmove", handleTouchMove);
+    document.addEventListener("touchend", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleMouseUp);
+    };
+  }, [isDraggingRight]);
+
+  const dotSource = useMemo(
+    () => erDiagramChenDot(activeSchema, isDark),
+    [activeSchema, isDark],
   );
   const current = steps[activeStep];
 
@@ -440,7 +540,14 @@ export default function Home() {
       {/* Top Bar with Collapsible Theme Selector */}
       <AppHeader theme={theme} onThemeChange={handleThemeChange} />
 
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-[320px_1fr_340px] gap-4 p-4">
+      <main
+        className="flex-1 grid grid-cols-1 lg:grid-cols-[var(--left-panel-width)_12px_minmax(0,1fr)_12px_var(--right-panel-width)] gap-y-4 lg:gap-x-2 gap-x-4 p-4 items-start"
+        style={{
+          ["--left-panel-width" as string]: `${leftPanelWidth}px`,
+          ["--right-panel-width" as string]: `${rightPanelWidth}px`,
+          userSelect: isDraggingLeft || isDraggingRight ? "none" : undefined,
+        }}
+      >
         {/* Left Sidebar: Input Panel with single Guide button at bottom-left */}
         <div className={`flex flex-col ${mobileTab !== "input" ? "hidden lg:flex" : "flex"}`}>
           <InputPanel
@@ -471,6 +578,27 @@ export default function Home() {
           />
         </div>
 
+        {/* Draggable Vertical Slider Handle between Left Sidebar and Center Canvas */}
+        <div
+          onMouseDown={handleStartResizeLeft}
+          onTouchStart={handleStartResizeLeft}
+          className={`hidden lg:flex items-center justify-center cursor-col-resize select-none h-full min-h-[400px] -mx-1 group relative transition-colors ${
+            isDraggingLeft ? "opacity-100" : "opacity-40 hover:opacity-100"
+          }`}
+          title="Drag slider left/right to adjust Left Panel width"
+          role="separator"
+          aria-label="Adjust width of input panel"
+          aria-orientation="vertical"
+        >
+          <div
+            className={`w-1 rounded-full transition-all duration-150 group-hover:w-1.5 group-hover:h-28 ${
+              isDraggingLeft
+                ? "bg-[var(--accent)] h-36 w-1.5 shadow-sm"
+                : "bg-[var(--border)] h-16 group-hover:bg-[var(--accent)]"
+            }`}
+          />
+        </div>
+
         {/* Center: Canvas / Visualization */}
         <div className={`flex flex-col gap-3 min-w-0 ${mobileTab !== "canvas" ? "hidden lg:flex" : "flex"}`}>
           <VisualizationPanel
@@ -487,15 +615,36 @@ export default function Home() {
             onExportCSV={exportCSV}
             onExportReport={exportReport}
             sql={sql}
-            mermaidSource={mermaidSource}
+            dotSource={dotSource}
             schema={activeSchema}
             dark={isDark}
             theme={theme}
           />
         </div>
 
+        {/* Draggable Vertical Slider Handle between Center and Right Panel */}
+        <div
+          onMouseDown={handleStartResizeRight}
+          onTouchStart={handleStartResizeRight}
+          className={`hidden lg:flex items-center justify-center cursor-col-resize select-none h-full min-h-[400px] -mx-1 group relative transition-colors ${
+            isDraggingRight ? "opacity-100" : "opacity-40 hover:opacity-100"
+          }`}
+          title="Drag slider left/right to adjust Execution Theory & Algebra width"
+          role="separator"
+          aria-label="Adjust width of Execution Theory & Algebra panel"
+          aria-orientation="vertical"
+        >
+          <div
+            className={`w-1 rounded-full transition-all duration-150 group-hover:w-1.5 group-hover:h-28 ${
+              isDraggingRight
+                ? "bg-[var(--accent)] h-36 w-1.5 shadow-sm"
+                : "bg-[var(--border)] h-16 group-hover:bg-[var(--accent)]"
+            }`}
+          />
+        </div>
+
         {/* Right Sidebar: Explanation Panel with Export Dataset Section Box */}
-        <div className={`flex flex-col ${mobileTab !== "tools" ? "hidden lg:flex" : "flex"}`}>
+        <div className={`flex flex-col min-w-0 ${mobileTab !== "tools" ? "hidden lg:flex" : "flex"}`}>
           <ExplanationPanel
             current={current}
             error={error}

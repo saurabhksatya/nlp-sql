@@ -78,7 +78,6 @@ export function AppHeader({ theme, onThemeChange }: AppHeaderProps) {
             className="hidden sm:inline-block text-[11px] font-medium opacity-70"
             style={{ color: "var(--muted)" }}
           >
-            Relational Algebra Engine
           </span>
         </div>
       </div>
@@ -134,9 +133,8 @@ export function AppHeader({ theme, onThemeChange }: AppHeaderProps) {
 
           {/* Chevron */}
           <svg
-            className={`w-3.5 h-3.5 opacity-60 transition-transform duration-200 ${
-              isOpen ? "rotate-180" : ""
-            }`}
+            className={`w-3.5 h-3.5 opacity-60 transition-transform duration-200 ${isOpen ? "rotate-180" : ""
+              }`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Table } from "@/lib/schema";
 import type { PipelineStep, Row } from "@/lib/sqlEngine";
 import type { Tab, ThemeId } from "./nlSqlTypes";
@@ -96,7 +96,7 @@ interface VisualizationPanelProps {
   onExportCSV: () => void;
   onExportReport: () => void;
   sql: string;
-  mermaidSource: string;
+  dotSource: string;
   schema: Table[];
   dark: boolean;
   theme?: ThemeId;
@@ -116,7 +116,7 @@ export function VisualizationPanel({
   onExportCSV,
   onExportReport,
   sql,
-  mermaidSource,
+  dotSource,
   schema,
   dark,
   theme = "eclipse",
@@ -137,15 +137,15 @@ export function VisualizationPanel({
               style={
                 isActive
                   ? {
-                      background: "var(--accent)",
-                      color: "var(--accent-foreground)",
-                      borderColor: "var(--accent)",
-                    }
+                    background: "var(--accent)",
+                    color: "var(--accent-foreground)",
+                    borderColor: "var(--accent)",
+                  }
                   : {
-                      background: "var(--panel)",
-                      color: "var(--muted)",
-                      borderColor: "var(--border)",
-                    }
+                    background: "var(--panel)",
+                    color: "var(--muted)",
+                    borderColor: "var(--border)",
+                  }
               }
             >
               {item === "result"
@@ -175,7 +175,11 @@ export function VisualizationPanel({
         />
       )}
       {tab === "schema" && (
-        <SchemaView schema={schema} source={mermaidSource} dark={dark} />
+        <SchemaView
+          schema={schema}
+          dotSource={dotSource}
+          dark={dark}
+        />
       )}
       {tab === "theory" && <Theory />}
     </section>
@@ -197,7 +201,7 @@ function ResultView({
   theme = "eclipse",
 }: Omit<
   VisualizationPanelProps,
-  "tab" | "onTabChange" | "mermaidSource" | "schema" | "dark"
+  "tab" | "onTabChange" | "dotSource" | "schema" | "dark"
 >) {
   return (
     <>
@@ -260,11 +264,10 @@ function ResultView({
               <li key={index}>
                 <button
                   onClick={() => onStepChange(index)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-transform cursor-pointer ${
-                    index === activeStep
-                      ? "scale-105 ring-2 ring-offset-2 ring-offset-[var(--background)] ring-[var(--accent)] font-bold shadow-md"
-                      : "opacity-85 hover:opacity-100"
-                  } ${getStageBadgeClass(step.stage, theme)}`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-transform cursor-pointer ${index === activeStep
+                    ? "scale-105 ring-2 ring-offset-2 ring-offset-[var(--background)] ring-[var(--accent)] font-bold shadow-md"
+                    : "opacity-85 hover:opacity-100"
+                    } ${getStageBadgeClass(step.stage, theme)}`}
                 >
                   {step.stage}
                   <span className="ml-1 opacity-90">({step.rowCount})</span>
@@ -346,136 +349,521 @@ function ResultView({
   );
 }
 
+let vizPromise: Promise<{ renderString: (src: string, opts?: { format: string }) => string }> | null = null;
+function getVizInstance() {
+  if (!vizPromise) {
+    vizPromise = import("@viz-js/viz").then(({ instance }) => instance());
+  }
+  return vizPromise;
+}
+
+function ChenDiagram({ dot, dark = true }: { dot: string; dark?: boolean }) {
+  const diagramRef = useRef<HTMLDivElement>(null);
+  const modalDiagramRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [zoom, setZoom] = useState(1);
+
+  // Close modal on Escape key
+  useEffect(() => {
+    if (!isExpanded) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsExpanded(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isExpanded]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    getVizInstance()
+      .then((viz) => {
+        if (cancelled) return;
+        const svg = viz.renderString(dot, { format: "svg" });
+        if (cancelled) return;
+        if (diagramRef.current) {
+          diagramRef.current.innerHTML = svg;
+        }
+        if (modalDiagramRef.current) {
+          modalDiagramRef.current.innerHTML = svg;
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : String(err));
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dot]);
+
+  // When expanding modal, also ensure svg is populated into modalDiagramRef
+  useEffect(() => {
+    if (isExpanded && modalDiagramRef.current && diagramRef.current) {
+      modalDiagramRef.current.innerHTML = diagramRef.current.innerHTML;
+    }
+  }, [isExpanded]);
+
+  const handleDownloadSVG = () => {
+    const activeRef = isExpanded ? modalDiagramRef.current : diagramRef.current;
+    const svgEl = activeRef?.querySelector("svg") || diagramRef.current?.querySelector("svg");
+    if (!svgEl) return;
+    const clone = svgEl.cloneNode(true) as SVGSVGElement;
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    const svgData = new XMLSerializer().serializeToString(clone);
+    const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "entity-relationship-diagram.svg";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPNG = () => {
+    const activeRef = isExpanded ? modalDiagramRef.current : diagramRef.current;
+    const svgEl = activeRef?.querySelector("svg") || diagramRef.current?.querySelector("svg");
+    if (!svgEl) return;
+    setDownloading("png");
+    try {
+      const clone = svgEl.cloneNode(true) as SVGSVGElement;
+      clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      const svgData = new XMLSerializer().serializeToString(clone);
+      const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(svgBlob);
+      const img = new Image();
+
+      img.onload = () => {
+        const bbox = svgEl.getBoundingClientRect();
+        const viewBox = svgEl.viewBox?.baseVal;
+        const width = viewBox?.width && viewBox.width > 0 ? viewBox.width : (bbox.width || 900);
+        const height = viewBox?.height && viewBox.height > 0 ? viewBox.height : (bbox.height || 600);
+        const scale = 2;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width * scale;
+        canvas.height = height * scale;
+        const ctx = canvas.getContext("2d");
+
+        if (ctx) {
+          ctx.fillStyle = dark ? "#0f172a" : "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const pngUrl = canvas.toDataURL("image/png");
+          const anchor = document.createElement("a");
+          anchor.href = pngUrl;
+          anchor.download = "entity-relationship-diagram.png";
+          anchor.click();
+        }
+        URL.revokeObjectURL(url);
+        setDownloading(null);
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        setDownloading(null);
+      };
+
+      img.src = url;
+    } catch {
+      setDownloading(null);
+    }
+  };
+
+  return (
+    <>
+      <div
+        className="panel min-h-60 overflow-hidden flex flex-col rounded-lg border transition-all"
+        style={{
+          background: "var(--surface-subtle)",
+          borderColor: "var(--border)",
+        }}
+        aria-label="Entity-Relationship Diagram"
+      >
+        <div
+          className="flex items-center justify-between px-3.5 py-2 border-b text-xs"
+          style={{
+            background: "var(--panel)",
+            borderColor: "var(--border)",
+          }}
+        >
+          <span className="font-semibold text-xs opacity-75" style={{ color: "var(--foreground)" }}>
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleDownloadSVG}
+              disabled={loading || !!error}
+              className="px-2.5 py-1 rounded-md border text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+              style={{
+                background: "var(--surface-subtle)",
+                borderColor: "var(--border)",
+                color: "var(--foreground)",
+              }}
+              title="Download diagram as vector SVG"
+            >
+              <svg className="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <span>Download SVG</span>
+            </button>
+            <button
+              onClick={handleDownloadPNG}
+              disabled={loading || !!error || downloading === "png"}
+              className="px-2.5 py-1 rounded-md border text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+              style={{
+                background: "var(--surface-subtle)",
+                borderColor: "var(--border)",
+                color: "var(--foreground)",
+              }}
+              title="Download diagram as high-resolution PNG image"
+            >
+              <svg className="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <span>{downloading === "png" ? "Exporting..." : "Download PNG"}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="relative p-4 overflow-x-auto [&_svg]:mx-auto [&_svg]:max-w-full [&_svg]:h-auto flex items-center justify-center flex-1 min-h-52">
+          {/* Diagonal Arrows Expand Button positioned on top-left inside the diagram image area */}
+          <button
+            type="button"
+            onClick={() => {
+              setZoom(1);
+              setIsExpanded(true);
+            }}
+            disabled={loading || !!error}
+            className="absolute top-3 right-3 z-10 px-2.5 py-1.5 rounded-lg border flex items-center gap-1.5 text-xs font-medium shadow-md transition-all hover:scale-105 hover:opacity-100 opacity-85 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed backdrop-blur-md"
+            style={{
+              background: "var(--panel)",
+              borderColor: "var(--border)",
+              color: "var(--foreground)",
+            }}
+            title="Expand diagram (Fullscreen / Zoom View)"
+            aria-label="Expand diagram"
+          >
+            {/* Diagonal Expand Arrows Icon */}
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+              />
+            </svg>
+          </button>
+
+          {loading && (
+            <div className="flex items-center gap-2 text-xs opacity-70 p-4" style={{ color: "var(--muted)" }}>
+              <svg className="animate-spin h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+              </svg>
+              <span>Rendering ER diagram...</span>
+            </div>
+          )}
+          {error && (
+            <p className="text-xs text-red-500 p-2">ER Diagram rendering error: {error}</p>
+          )}
+          <div ref={diagramRef} className={loading || error ? "hidden" : "w-full overflow-x-auto"} />
+        </div>
+      </div>
+
+      {/* Fullscreen / Expanded Diagram Modal */}
+      {isExpanded && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setIsExpanded(false)}
+        >
+          <div
+            className="w-full max-w-6xl h-[92vh] flex flex-col rounded-xl border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+            style={{
+              background: "var(--panel)",
+              borderColor: "var(--border)",
+              color: "var(--foreground)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Expanded Entity-Relationship Diagram"
+          >
+            {/* Modal Header */}
+            <div
+              className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b"
+              style={{
+                background: "var(--surface-subtle)",
+                borderColor: "var(--border)",
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-md bg-blue-500/15 border border-blue-500/30 text-blue-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm leading-tight" style={{ color: "var(--foreground)" }}>
+                    Entity-Relationship Diagram
+                  </h3>
+                  <p className="text-[11px] opacity-70 font-mono" style={{ color: "var(--muted)" }}>
+                    Chen Notation &bull; Zoom: {Math.round(zoom * 100)}%
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Toolbar */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Zoom controls */}
+                <div
+                  className="flex items-center rounded-lg border overflow-hidden"
+                  style={{ borderColor: "var(--border)", background: "var(--panel)" }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.2).toFixed(1))))}
+                    className="px-2.5 py-1 text-xs hover:bg-[var(--surface-hover)] transition-colors border-r"
+                    style={{ borderColor: "var(--border)" }}
+                    title="Zoom Out"
+                  >
+                    -
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setZoom(1)}
+                    className="px-2.5 py-1 text-xs font-mono hover:bg-[var(--surface-hover)] transition-colors"
+                    title="Reset Zoom to 100%"
+                  >
+                    {Math.round(zoom * 100)}%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setZoom((z) => Math.min(3, Number((z + 0.2).toFixed(1))))}
+                    className="px-2.5 py-1 text-xs hover:bg-[var(--surface-hover)] transition-colors border-l"
+                    style={{ borderColor: "var(--border)" }}
+                    title="Zoom In"
+                  >
+                    +
+                  </button>
+                </div>
+
+                {/* Download buttons */}
+                <button
+                  type="button"
+                  onClick={handleDownloadSVG}
+                  className="px-3 py-1 rounded-lg border text-xs font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity"
+                  style={{
+                    background: "var(--panel)",
+                    borderColor: "var(--border)",
+                    color: "var(--foreground)",
+                  }}
+                  title="Download SVG"
+                >
+                  <svg className="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  <span>SVG</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadPNG}
+                  disabled={downloading === "png"}
+                  className="px-3 py-1 rounded-lg border text-xs font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity"
+                  style={{
+                    background: "var(--panel)",
+                    borderColor: "var(--border)",
+                    color: "var(--foreground)",
+                  }}
+                  title="Download PNG"
+                >
+                  <svg className="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  <span>{downloading === "png" ? "Exporting..." : "PNG"}</span>
+                </button>
+
+                {/* Close Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsExpanded(false)}
+                  className="p-1.5 rounded-lg border hover:bg-rose-500/15 hover:border-rose-500/40 hover:text-rose-400 transition-colors"
+                  style={{
+                    borderColor: "var(--border)",
+                    color: "var(--muted)",
+                  }}
+                  title="Close Fullscreen (Esc)"
+                  aria-label="Close expanded view"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Canvas */}
+            <div
+              className="flex-1 overflow-auto p-6 flex items-center justify-center cursor-grab active:cursor-grabbing"
+              style={{
+                background: "var(--background)",
+              }}
+            >
+              <div
+                ref={modalDiagramRef}
+                style={{
+                  transform: `scale(${zoom})`,
+                  transformOrigin: "center center",
+                  transition: "transform 150ms ease-out",
+                }}
+                className="w-full flex items-center justify-center [&_svg]:mx-auto [&_svg]:max-w-full [&_svg]:h-auto"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function SchemaView({
   schema,
-  source,
+  dotSource = "",
   dark,
 }: {
   schema: Table[];
-  source: string;
+  dotSource?: string;
   dark: boolean;
 }) {
   return (
     <div
-      className="panel p-4 overflow-auto"
+      className="panel p-4 overflow-auto flex flex-col gap-5"
       style={{
         background: "var(--panel)",
         borderColor: "var(--border)",
         color: "var(--foreground)",
       }}
     >
-      <h2 className="font-bold mb-3 text-base" style={{ color: "var(--foreground)" }}>
-        Database Schema
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {schema.map((table) => (
-          <div
-            key={table.name}
-            className="p-3 rounded-lg border"
-            style={{
-              background: "var(--surface-subtle)",
-              borderColor: "var(--border)",
-            }}
-          >
-            <h3 className="font-mono font-bold text-base mb-1" style={{ color: "var(--foreground)" }}>
-              {table.name}
-            </h3>
-            <table className="text-sm w-full">
-              <tbody>
-                {table.columns.map((column) => (
-                  <tr key={column.name}>
-                    <td className="py-0.5 pr-2 font-mono" style={{ color: "var(--foreground)" }}>
-                      {column.name}
-                    </td>
-                    <td className="opacity-60" style={{ color: "var(--muted)" }}>
-                      {column.type}
-                    </td>
-                    <td className="text-right font-mono text-xs">
-                      {column.pk && (
-                        <span className="font-bold text-amber-500 bg-amber-500/15 border border-amber-500/30 px-1 py-0.5 rounded mr-1">
-                          PK
+      <div>
+        <h2 className="font-bold mb-3 text-base" style={{ color: "var(--foreground)" }}>
+          Database Schema
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {schema.map((table) => (
+            <div
+              key={table.name}
+              className="p-3.5 rounded-lg border flex flex-col justify-between overflow-hidden shadow-2xs"
+              style={{
+                background: "var(--surface-subtle)",
+                borderColor: "var(--border)",
+              }}
+            >
+              <div>
+                <div className="flex items-center justify-between mb-2 pb-1.5 border-b" style={{ borderColor: "var(--border)" }}>
+                  <h3 className="font-mono font-bold text-sm truncate" style={{ color: "var(--foreground)" }} title={table.name}>
+                    {table.name}
+                  </h3>
+                  <span className="text-[11px] font-mono opacity-50 shrink-0" style={{ color: "var(--muted)" }}>
+                    {table.columns.length} col{table.columns.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+
+                <div className="flex flex-col divide-y divide-[var(--border)]/30">
+                  {table.columns.map((column) => (
+                    <div
+                      key={column.name}
+                      className="py-1.5 flex items-center justify-between gap-2 text-xs min-w-0"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span
+                          className="font-mono font-medium truncate"
+                          style={{ color: "var(--foreground)" }}
+                          title={column.name}
+                        >
+                          {column.name}
                         </span>
-                      )}
-                      {column.fk && (
-                        <span className="text-sky-500 bg-sky-500/15 border border-sky-500/30 px-1 py-0.5 rounded">
-                          FK→{column.fk.table}.{column.fk.column}
+                        <span
+                          className="text-[11px] opacity-55 font-mono shrink-0"
+                          style={{ color: "var(--muted)" }}
+                        >
+                          {column.type}
                         </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="text-xs opacity-60 mt-1.5" style={{ color: "var(--muted)" }}>
-              {table.rows.length} sample rows
-            </p>
-          </div>
-        ))}
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0 justify-end max-w-[60%]">
+                        {column.pk && (
+                          <span
+                            className="font-bold text-amber-500 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded text-[10px] tracking-wide shrink-0"
+                            title="Primary Key"
+                          >
+                            PK
+                          </span>
+                        )}
+                        {column.fk && (
+                          <span
+                            className="text-sky-500 bg-sky-500/15 border border-sky-500/30 px-1.5 py-0.5 rounded text-[10px] font-mono truncate max-w-full inline-block"
+                            title={`Foreign Key → ${column.fk.table}.${column.fk.column}`}
+                          >
+                            FK→{column.fk.table}.{column.fk.column}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-[11px] opacity-60 mt-2.5 pt-1.5 border-t border-[var(--border)]/30" style={{ color: "var(--muted)" }}>
+                {table.rows.length} sample row{table.rows.length !== 1 ? "s" : ""}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="mt-4">
-        <h3 className="font-bold text-base mb-2" style={{ color: "var(--foreground)" }}>
-          ER diagram
-        </h3>
-        <MermaidDiagram source={source} dark={dark} />
-        <details className="mt-3">
-          <summary className="cursor-pointer text-sm font-semibold" style={{ color: "var(--foreground)" }}>
-            Mermaid ER source
-          </summary>
-          <pre
-            className="text-xs mt-2 overflow-x-auto p-2.5 rounded-lg border whitespace-pre-wrap font-mono"
-            style={{
-              background: "var(--surface-subtle)",
-              borderColor: "var(--border)",
-              color: "var(--foreground)",
-            }}
-          >
-            {source}
-          </pre>
-        </details>
+
+      <div>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <h3 className="font-bold text-base" style={{ color: "var(--foreground)" }}>
+            Entity-Relationship Diagram
+          </h3>
+          <div className="flex items-center gap-3 text-xs opacity-80 flex-wrap" style={{ color: "var(--muted)" }}>
+            <span className="flex items-center gap-1 font-medium">
+              <span className="inline-block w-2.5 h-2.5 bg-blue-500"></span> Entity
+            </span>
+            <span className="flex items-center gap-1 font-medium">
+              <span className="inline-block w-2.5 h-2.5 rotate-45 bg-emerald-500"></span> Relationship
+            </span>
+            <span className="flex items-center gap-1 font-medium">
+              <span className="inline-block w-3 h-2 rounded-full border border-current"></span> Attribute
+            </span>
+            <span className="flex items-center gap-1 font-medium">
+              <span className="underline font-bold">PK</span> Primary Key
+            </span>
+          </div>
+        </div>
+
+        <ChenDiagram dot={dotSource} dark={dark} />
       </div>
     </div>
-  );
-}
-
-function MermaidDiagram({ source, dark }: { source: string; dark: boolean }) {
-  const diagramRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const renderId = "er_" + Math.random().toString(36).slice(2, 9);
-    void import("mermaid")
-      .then(({ default: mermaid }) => {
-        if (cancelled || !diagramRef.current) return;
-        mermaid.initialize({
-          startOnLoad: false,
-          securityLevel: "strict",
-          theme: dark ? "dark" : "neutral",
-        });
-        return mermaid.render(renderId, source);
-      })
-      .then((result) => {
-        if (cancelled || !diagramRef.current || !result) return;
-        diagramRef.current.innerHTML = result.svg;
-      })
-      .catch((err) => {
-        if (cancelled || !diagramRef.current) return;
-        diagramRef.current.innerHTML = `<p class="text-xs text-red-500 p-2">ER Diagram rendering error: ${err instanceof Error ? err.message : String(err)}</p>`;
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [source, dark]);
-
-  return (
-    <div
-      ref={diagramRef}
-      className="panel min-h-40 overflow-x-auto p-3 [&_svg]:mx-auto [&_svg]:max-w-full"
-      style={{
-        background: "var(--surface-subtle)",
-        borderColor: "var(--border)",
-      }}
-      aria-label="Entity relationship diagram"
-    />
   );
 }
 

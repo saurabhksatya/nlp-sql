@@ -86,7 +86,7 @@ export function ExplanationPanel({
 
   return (
     <aside
-      className="panel p-4 overflow-y-auto max-h-[calc(100vh-5rem)] flex flex-col gap-4"
+      className="panel p-4 overflow-y-auto max-h-[calc(100vh-5rem)] flex flex-col gap-5"
       style={{
         background: "var(--panel)",
         borderColor: "var(--border)",
@@ -94,32 +94,34 @@ export function ExplanationPanel({
       }}
       aria-label="Explanation panel"
     >
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-sm" style={{ color: "var(--foreground)" }}>
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-1 border-b" style={{ borderColor: "var(--border)" }}>
+          <h2 className="font-bold text-sm" style={{ color: "var(--foreground)" }}>
             Execution Theory &amp; Algebra
           </h2>
-          {lastResult && (
-            <span
-              className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border"
-              style={{
-                background: "var(--surface-subtle)",
-                borderColor: "var(--border)",
-                color: "var(--foreground)",
-              }}
-            >
-              {lastResult.statementType}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {lastResult && (
+              <span
+                className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border shrink-0"
+                style={{
+                  background: "var(--surface-subtle)",
+                  borderColor: "var(--border)",
+                  color: "var(--foreground)",
+                }}
+              >
+                {lastResult.statementType}
+              </span>
+            )}
+          </div>
         </div>
 
         {!current && !error && (
-          <div className="space-y-3 text-xs opacity-90">
-            <p style={{ color: "var(--foreground)" }}>
+          <div className="space-y-3.5 text-xs opacity-90">
+            <p className="leading-relaxed" style={{ color: "var(--foreground)" }}>
               Run any SQL statement to inspect its step-by-step pipeline execution, relational algebra notation, and complexity metrics.
             </p>
             <div
-              className="p-3 rounded-lg border space-y-1.5 text-[11px]"
+              className="p-3.5 rounded-xl border space-y-2 text-[11px]"
               style={{
                 background: "var(--surface-subtle)",
                 borderColor: "var(--border)",
@@ -137,9 +139,9 @@ export function ExplanationPanel({
         )}
 
         {error && (
-          <div className="text-xs space-y-2">
+          <div className="text-xs space-y-2.5">
             <p className="font-bold text-red-500">Execution Failed</p>
-            <p className="font-mono p-2.5 rounded-lg border bg-red-500/10 border-red-500/30 text-red-500">
+            <p className="font-mono p-3 rounded-xl border bg-red-500/10 border-red-500/30 text-red-500">
               {error}
             </p>
             <p className="text-[11px] opacity-70" style={{ color: "var(--muted)" }}>
@@ -149,10 +151,10 @@ export function ExplanationPanel({
         )}
 
         {current && (
-          <div className="space-y-3 text-xs">
+          <div className="space-y-3.5 text-xs">
             <div>
               <span
-                className="inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold border"
+                className="inline-block px-2.5 py-0.5 rounded text-[10px] font-mono font-bold border"
                 style={{
                   background: "var(--surface-subtle)",
                   borderColor: "var(--border)",
@@ -162,19 +164,19 @@ export function ExplanationPanel({
                 {current.stage}
               </span>
               <h3
-                className="font-bold text-sm mt-1.5"
+                className="font-bold text-sm mt-2"
                 style={{ color: "var(--foreground)" }}
               >
                 {current.title}
               </h3>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <p className="leading-relaxed" style={{ color: "var(--foreground)" }}>
                 {current.detail}
               </p>
               <div
-                className="p-2.5 rounded-lg border text-xs leading-relaxed"
+                className="p-3 rounded-xl border text-xs leading-relaxed"
                 style={{
                   background: "var(--surface-subtle)",
                   borderColor: "var(--border)",
@@ -185,24 +187,24 @@ export function ExplanationPanel({
                   {NOTES[current.stage] ?? "Database operation executed successfully."}
                 </p>
               </div>
-              <p className="text-[11px] font-mono" style={{ color: "var(--foreground)" }}>
+              <p className="text-[11px] font-mono pt-0.5" style={{ color: "var(--foreground)" }}>
                 Working rows after this stage:{" "}
                 <strong style={{ color: "var(--accent)" }}>{current.rowCount}</strong>
               </p>
             </div>
 
             <div
-              className="border-t pt-3"
+              className="border-t pt-3.5"
               style={{ borderColor: "var(--border)" }}
             >
               <h4
-                className="text-[10px] font-bold uppercase mb-1.5 tracking-wider"
+                className="text-[10px] font-bold uppercase mb-2 tracking-wider"
                 style={{ color: "var(--muted)" }}
               >
                 Relational Notation / Semantics
               </h4>
               <div
-                className="p-2 rounded-lg font-mono text-xs font-semibold border"
+                className="p-2.5 rounded-xl font-mono text-xs font-semibold border"
                 style={{
                   background: "var(--surface-subtle)",
                   borderColor: "var(--border)",
@@ -218,7 +220,7 @@ export function ExplanationPanel({
 
       {/* Export Dataset Section Box */}
       <div
-        className="border-t pt-4 mt-auto space-y-3"
+        className="border-t pt-4 mt-auto space-y-3.5"
         style={{ borderColor: "var(--border)" }}
       >
         <div className="flex items-center justify-between">
@@ -243,7 +245,7 @@ export function ExplanationPanel({
           </h3>
           {dataset && (
             <span
-              className="text-[10px] font-mono px-1.5 py-0.5 rounded border opacity-70"
+              className="text-[10px] font-mono px-2 py-0.5 rounded border opacity-80"
               style={{
                 background: "var(--surface-subtle)",
                 borderColor: "var(--border)",
@@ -256,7 +258,7 @@ export function ExplanationPanel({
         </div>
 
         <div
-          className="p-3 rounded-lg border space-y-3"
+          className="p-3.5 rounded-xl border space-y-3"
           style={{
             background: "var(--surface-subtle)",
             borderColor: "var(--border)",
@@ -287,7 +289,7 @@ export function ExplanationPanel({
           </button>
 
           {/* CSV Tables Export Section */}
-          <div className="space-y-1.5 pt-1">
+          <div className="space-y-2 pt-1">
             <div className="flex items-center justify-between text-[11px] font-semibold opacity-80">
               <span>CSV Tables (.csv)</span>
               {activeSchema.length > 1 && (
@@ -301,13 +303,13 @@ export function ExplanationPanel({
               )}
             </div>
 
-            <div className="grid grid-cols-1 gap-1.5">
+            <div className="grid grid-cols-1 gap-2">
               {activeSchema.map((table) => (
                 <button
                   key={table.name}
                   type="button"
                   onClick={() => handleExportTableCSV(table)}
-                  className="w-full text-left p-2 rounded-lg border text-xs flex items-center justify-between transition-colors cursor-pointer hover:bg-[var(--surface-hover)]"
+                  className="w-full text-left p-2.5 rounded-lg border text-xs flex items-center justify-between transition-colors cursor-pointer hover:bg-[var(--surface-hover)]"
                   style={{
                     background: "var(--panel)",
                     borderColor: "var(--border)",

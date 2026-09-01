@@ -95,16 +95,17 @@ export function InputPanel({
       }}
       aria-label="Input panel"
     >
-      {/* Scrollable Main Area */}
-      <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+      {/* Scrollable Main Area with generous, balanced spacing */}
+      <div className="flex-1 overflow-y-auto space-y-5 pr-1">
+        {/* Choose a Dataset Card */}
         <div
-          className="p-3 rounded-lg border"
+          className="p-3.5 rounded-xl border space-y-2.5"
           style={{
             background: "var(--surface-subtle)",
             borderColor: "var(--border)",
           }}
         >
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between">
             <label
               htmlFor="dataset"
               className="text-xs font-bold uppercase tracking-wider block"
@@ -168,7 +169,13 @@ export function InputPanel({
         </div>
 
         {/* 1. Voice and Natural Language Query Section */}
-        <div className="flex flex-col gap-2.5">
+        <div
+          className="p-3.5 rounded-xl border flex flex-col gap-3"
+          style={{
+            background: "var(--surface-subtle)",
+            borderColor: "var(--border)",
+          }}
+        >
           <div className="flex items-center justify-between">
             <h2
               className="font-bold flex items-center gap-1.5 text-sm"
@@ -286,9 +293,9 @@ export function InputPanel({
           {/* Translation results & interpretation */}
           {nlInfo && (
             <div
-              className="mt-1 text-xs space-y-1 p-2.5 rounded-lg border"
+              className="mt-1 text-xs space-y-1.5 p-3 rounded-lg border"
               style={{
-                background: "var(--surface-subtle)",
+                background: "var(--panel)",
                 borderColor: "var(--border)",
                 color: "var(--foreground)",
               }}
@@ -321,21 +328,29 @@ export function InputPanel({
         </div>
 
         {/* 2. Direct SQL Query Section */}
-        <div>
-          <h2
-            className="font-bold mb-2 text-sm"
-            style={{ color: "var(--foreground)" }}
-          >
-            2. Or write SQL directly
-          </h2>
+        <div
+          className="p-3.5 rounded-xl border flex flex-col gap-3"
+          style={{
+            background: "var(--surface-subtle)",
+            borderColor: "var(--border)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <h2
+              className="font-bold text-sm"
+              style={{ color: "var(--foreground)" }}
+            >
+              2. Or write SQL directly
+            </h2>
+          </div>
           <textarea
             value={sql}
             onChange={(event) => onSqlChange(event.target.value)}
             rows={4}
             spellCheck={false}
-            className="w-full p-2 text-sm font-mono resize-y rounded-lg border focus:outline-none"
+            className="w-full p-2.5 text-sm font-mono resize-y rounded-lg border focus:outline-none"
             style={{
-              background: "var(--surface-subtle)",
+              background: "var(--panel)",
               borderColor: "var(--border)",
               color: "var(--foreground)",
             }}
@@ -343,9 +358,9 @@ export function InputPanel({
           />
           <button
             onClick={onRunQuery}
-            className="mt-2 w-full py-2 rounded-lg text-sm font-semibold border transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90"
+            className="w-full py-2 rounded-lg text-sm font-semibold border transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90"
             style={{
-              background: "var(--surface-subtle)",
+              background: "var(--panel)",
               borderColor: "var(--border)",
               color: "var(--foreground)",
             }}
@@ -353,16 +368,22 @@ export function InputPanel({
             <span>Execute SQL</span>
           </button>
           {error && (
-            <p role="alert" className="mt-2 text-xs text-red-500 font-mono">
+            <p role="alert" className="text-xs text-red-500 font-mono p-2 rounded-md bg-red-500/10 border border-red-500/30">
               {error}
             </p>
           )}
         </div>
 
         {/* Sample Inputs */}
-        <div>
+        <div
+          className="p-3.5 rounded-xl border space-y-2.5"
+          style={{
+            background: "var(--surface-subtle)",
+            borderColor: "var(--border)",
+          }}
+        >
           <h2
-            className="font-bold mb-2 text-sm"
+            className="font-bold text-sm"
             style={{ color: "var(--foreground)" }}
           >
             Sample Inputs
@@ -391,9 +412,15 @@ export function InputPanel({
         </div>
 
         {/* History */}
-        <div>
+        <div
+          className="p-3.5 rounded-xl border space-y-2.5"
+          style={{
+            background: "var(--surface-subtle)",
+            borderColor: "var(--border)",
+          }}
+        >
           <h2
-            className="font-bold mb-2 text-sm"
+            className="font-bold text-sm"
             style={{ color: "var(--foreground)" }}
           >
             History
@@ -403,7 +430,7 @@ export function InputPanel({
               No queries yet.
             </p>
           )}
-          <ul className="space-y-1">
+          <ul className="space-y-1.5">
             {history.slice(0, 8).map((item) => (
               <li key={item.id}>
                 <button
