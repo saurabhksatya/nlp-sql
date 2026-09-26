@@ -52,6 +52,87 @@ html[data-theme="pearl"],
   --scrollbar-thumb-hover: #c2410c;
 }
 
+/* =========================================================================
+   PAGE THEME OVERRIDES (SQL = Cyan, PL/SQL = Orange)
+   ========================================================================= */
+
+/* 1. SQL Page Theme Overrides: Cyan Identity (Dark Mode - Slate default) */
+html[data-page="sql"],
+html[data-page="sql"][data-theme="slate"],
+[data-page="sql"],
+.page-sql {
+  --accent: #00bcd4;
+  --accent-rgb: 0, 188, 212;
+  --accent-gradient: linear-gradient(135deg, #00d2ff 0%, #0284c7 100%);
+  --accent-foreground: #ffffff;
+  --accent-subtle: rgba(0, 210, 255, 0.15);
+  --scrollbar-thumb-from: #00d2ff;
+  --scrollbar-thumb-to: #0284c7;
+  --scrollbar-thumb-hover: #38bdf8;
+}
+
+/* SQL Page Theme Overrides: Cyan Identity (Light Mode - Pearl) */
+html[data-page="sql"][data-theme="pearl"],
+html[data-theme="pearl"] [data-page="sql"],
+html[data-theme="pearl"].page-sql {
+  --accent: #0891b2;
+  --accent-rgb: 8, 145, 178;
+  --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  --accent-foreground: #ffffff;
+  --accent-subtle: #ecfeff;
+  --scrollbar-thumb-from: #22d3ee;
+  --scrollbar-thumb-to: #0891b2;
+  --scrollbar-thumb-hover: #0e7490;
+}
+
+/* 2. PL/SQL Page Theme Overrides: Orange Identity (Dark Mode - Slate default) */
+html[data-page="plsql"],
+html[data-page="plsql"][data-theme="slate"],
+[data-page="plsql"],
+.page-plsql {
+  --accent: #FF6A3D;
+  --accent-rgb: 255, 106, 61;
+  --accent-gradient: linear-gradient(135deg, #FF6A3D 0%, #D83B01 100%);
+  --accent-foreground: #ffffff;
+  --accent-subtle: rgba(255, 106, 61, 0.15);
+  --scrollbar-thumb-from: #FF6A3D;
+  --scrollbar-thumb-to: #D83B01;
+  --scrollbar-thumb-hover: #FF8B5E;
+}
+
+/* PL/SQL Page Theme Overrides: Orange Identity (Light Mode - Pearl) */
+html[data-page="plsql"][data-theme="pearl"],
+html[data-theme="pearl"] [data-page="plsql"],
+html[data-theme="pearl"].page-plsql {
+  --accent: #ea580c;
+  --accent-rgb: 234, 88, 12;
+  --accent-gradient: linear-gradient(135deg, #FF6A3D 0%, #D83B01 100%);
+  --accent-foreground: #ffffff;
+  --accent-subtle: #fff7ed;
+  --scrollbar-thumb-from: #fb923c;
+  --scrollbar-thumb-to: #ea580c;
+  --scrollbar-thumb-hover: #c2410c;
+}
+
+/* Specific button glow and hover highlights on SQL page */
+html[data-page="sql"] .dl-action-btn:hover:not(:disabled),
+[data-page="sql"] .dl-action-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 20px -3px rgba(0, 0, 0, 0.6), 0 0 12px -2px rgba(0, 210, 255, 0.25) !important;
+}
+
+html[data-page="sql"] .dl-db-btn,
+[data-page="sql"] .dl-db-btn {
+  background-color: rgba(0, 210, 255, 0.1);
+  border-color: rgba(0, 210, 255, 0.35);
+}
+
+html[data-page="sql"] .dl-db-btn:hover:not(:disabled),
+[data-page="sql"] .dl-db-btn:hover:not(:disabled) {
+  background-color: #122834 !important;
+  border-color: #00d2ff !important;
+  box-shadow: 0 6px 20px -3px rgba(0, 0, 0, 0.6), 0 0 16px -2px rgba(0, 210, 255, 0.35) !important;
+}
+
 /*
 3. Eclipse (Colorful Dark)
 html[data-theme="eclipse"],

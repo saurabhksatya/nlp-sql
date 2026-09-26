@@ -131,7 +131,7 @@ export function VisualizationPanel({
               style={
                 isActive
                   ? {
-                      background: "var(--accent)",
+                      background: "var(--accent-gradient, var(--accent))",
                       color: "var(--accent-foreground)",
                       borderColor: "var(--accent)",
                     }
@@ -233,7 +233,7 @@ function ResultView({
             disabled={!steps.length}
             className="px-3 py-1 rounded-lg text-xs font-semibold disabled:opacity-40 flex items-center gap-1.5 cursor-pointer shadow-xs transition-opacity hover:opacity-90 border"
             style={{
-              background: "var(--accent)",
+              background: "var(--accent-gradient, var(--accent))",
               color: "var(--accent-foreground)",
               borderColor: "var(--accent)",
             }}

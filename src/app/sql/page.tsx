@@ -168,6 +168,7 @@ export default function Home() {
   const applyThemeToDOM = useCallback((nextTheme: ThemeId) => {
     const isThemeDark = nextTheme !== "pearl";
     document.documentElement.setAttribute("data-theme", nextTheme);
+    document.documentElement.setAttribute("data-page", "sql");
     const allThemeClasses = [
       "theme-eclipse",
       "theme-lazuli",
@@ -183,6 +184,14 @@ export default function Home() {
     document.documentElement.classList.remove(...allThemeClasses);
     document.documentElement.classList.add(`theme-${nextTheme}`);
     document.documentElement.classList.toggle("dark", isThemeDark);
+  }, []);
+
+  // Ensure data-page="sql" is set on documentElement while on SQL page
+  useEffect(() => {
+    document.documentElement.setAttribute("data-page", "sql");
+    return () => {
+      document.documentElement.removeAttribute("data-page");
+    };
   }, []);
 
   // Load theme from localStorage on mount
@@ -666,7 +675,10 @@ export default function Home() {
   }, [isResizingLeft, handleMouseMove, handleMouseUp]);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden pb-16 lg:pb-0 select-none">
+    <div
+      data-page="sql"
+      className="page-sql h-screen flex flex-col overflow-hidden pb-16 lg:pb-0 select-none"
+    >
       {/* Top Bar with Navigation & Theme Selector (Permanently Fixed & Static) */}
       <AppHeader
         theme={theme}
