@@ -43,6 +43,7 @@ function DBCanvas() {
 
     function initNodes() {
       const count = Math.floor((W * H) / 14000);
+      const isMobile = W < 768;
       nodesRef.current = Array.from({ length: count }, () => {
         const side =
           Math.random() < 0.45
@@ -50,15 +51,28 @@ function DBCanvas() {
             : Math.random() < 0.55
               ? "right"
               : "both";
-        const x =
-          side === "left"
-            ? Math.random() * W * 0.52
-            : side === "right"
-              ? W * 0.48 + Math.random() * W * 0.52
-              : Math.random() * W;
+        let x: number;
+        let y: number;
+        if (isMobile) {
+          x = Math.random() * W;
+          y =
+            side === "left"
+              ? Math.random() * H * 0.52
+              : side === "right"
+                ? H * 0.48 + Math.random() * H * 0.52
+                : Math.random() * H;
+        } else {
+          x =
+            side === "left"
+              ? Math.random() * W * 0.52
+              : side === "right"
+                ? W * 0.48 + Math.random() * W * 0.52
+                : Math.random() * W;
+          y = Math.random() * H;
+        }
         return {
           x,
-          y: Math.random() * H,
+          y,
           vx: (Math.random() - 0.5) * 0.25,
           vy: (Math.random() - 0.5) * 0.25,
           r: 2 + Math.random() * 3.5,
@@ -69,20 +83,8 @@ function DBCanvas() {
       });
     }
 
-    // sky-blue (left, SQL) → ember (right, PL/SQL)
-    // function getNodeColor(n: Node, alpha: number): string {
-    //   // const cx = n.x / W;
-    //   // if (cx < 0.44) return `rgba(214,238,255,${alpha})`;
-    //   // if (cx > 0.56) return `rgba(255,91,57,${alpha})`;
-    //   // const t = (cx - 0.44) / 0.12;
-    //   // const r = Math.round(214 + t * (255 - 214));
-    //   // const g = Math.round(238 - t * (238 - 91));
-    //   // const b = Math.round(255 - t * (255 - 57));
-    //   // return `rgba(${r},${g},${b},${alpha})`;
-    //   // return 'rgba(239, 197, 232, 1)`,
-    // }
-
     function drawHexGrid() {
+      const isMobile = W < 768;
       const size = 38;
       const cols = Math.ceil(W / (size * 1.5)) + 2;
       const rows = Math.ceil(H / (size * Math.sqrt(3))) + 2;
@@ -92,15 +94,15 @@ function DBCanvas() {
           const y =
             row * size * Math.sqrt(3) +
             (col % 2 ? (size * Math.sqrt(3)) / 2 : 0);
-          const cx = x / W;
+          const posRatio = isMobile ? y / H : x / W;
           let color: string;
-          if (cx < 0.44) color = "rgba(148,199,255,0.035)";
-          else if (cx > 0.56) color = "rgba(255, 91, 57, 0.04)";
+          if (posRatio < 0.44) color = "rgba(148,199,255,0.035)";
+          else if (posRatio > 0.56) color = "rgba(234, 94, 255, 0.04)";
           else {
-            const t = (cx - 0.44) / 0.12;
-            const r = Math.round(148 + t * (255 - 148));
-            const g = Math.round(199 - t * (199 - 91));
-            const b = Math.round(255 - t * (255 - 57));
+            const t = (posRatio - 0.44) / 0.12;
+            const r = Math.round(148 + t * (234 - 148));
+            const g = Math.round(199 - t * (199 - 94));
+            const b = Math.round(255 - t * (255 - 255));
             color = `rgba(${r},${g},${b},0.035)`;
           }
           ctx.beginPath();
@@ -121,20 +123,37 @@ function DBCanvas() {
 
     function draw() {
       ctx.clearRect(0, 0, W, H);
+      const isMobile = W < 768;
 
-      const leftGrad = ctx.createLinearGradient(0, 0, W * 0.5, H);
-      leftGrad.addColorStop(0, "#081221");
-      leftGrad.addColorStop(0.5, "#0b1c33");
-      leftGrad.addColorStop(1, "#05090f");
-      ctx.fillStyle = leftGrad;
-      ctx.fillRect(0, 0, W * 0.5, H);
+      if (isMobile) {
+        const topGrad = ctx.createLinearGradient(0, 0, 0, H * 0.5);
+        topGrad.addColorStop(0, "#081221");
+        topGrad.addColorStop(0.5, "#0b1c33");
+        topGrad.addColorStop(1, "#05090f");
+        ctx.fillStyle = topGrad;
+        ctx.fillRect(0, 0, W, H * 0.5);
 
-      const rightGrad = ctx.createLinearGradient(W * 0.5, 0, W, H);
-      rightGrad.addColorStop(0, "#1c0b06");
-      rightGrad.addColorStop(0.5, "#2a1006");
-      rightGrad.addColorStop(1, "#0f0503");
-      ctx.fillStyle = rightGrad;
-      ctx.fillRect(W * 0.5, 0, W * 0.5, H);
+        const bottomGrad = ctx.createLinearGradient(0, H * 0.5, 0, H);
+        bottomGrad.addColorStop(0, "#190624");
+        bottomGrad.addColorStop(0.5, "#240a2c");
+        bottomGrad.addColorStop(1, "#0d0514");
+        ctx.fillStyle = bottomGrad;
+        ctx.fillRect(0, H * 0.5, W, H * 0.5);
+      } else {
+        const leftGrad = ctx.createLinearGradient(0, 0, W * 0.5, H);
+        leftGrad.addColorStop(0, "#081221");
+        leftGrad.addColorStop(0.5, "#0b1c33");
+        leftGrad.addColorStop(1, "#05090f");
+        ctx.fillStyle = leftGrad;
+        ctx.fillRect(0, 0, W * 0.5, H);
+
+        const rightGrad = ctx.createLinearGradient(W * 0.5, 0, W, H);
+        rightGrad.addColorStop(0, "#1c0b06");
+        rightGrad.addColorStop(0.5, "#2a1006");
+        rightGrad.addColorStop(1, "#0f0503");
+        ctx.fillStyle = rightGrad;
+        ctx.fillRect(W * 0.5, 0, W * 0.5, H);
+      }
 
       drawHexGrid();
 
@@ -148,12 +167,13 @@ function DBCanvas() {
           const maxDist = 110;
           if (dist < maxDist) {
             const alpha = (1 - dist / maxDist) * 0.25;
-            const midX = (nodes[i].x + nodes[j].x) / 2;
-            const cx = midX / W;
+            const posRatio = isMobile
+              ? (nodes[i].y + nodes[j].y) / (2 * H)
+              : (nodes[i].x + nodes[j].x) / (2 * W);
             let color: string;
-            if (cx < 0.44) color = `rgba(214,238,255,${alpha * 0.6})`;
-            else if (cx > 0.56) color = `rgba(255,255,255,${alpha})`;
-            else color = `rgba(255,196,170,${alpha * 0.8})`;
+            if (posRatio < 0.44) color = `rgba(214,238,255,${alpha * 0.6})`;
+            else if (posRatio > 0.56) color = `rgba(234,180,255,${alpha * 0.7})`;
+            else color = `rgba(255,255,255,${alpha * 0.8})`;
             ctx.beginPath();
             ctx.moveTo(nodes[i].x, nodes[i].y);
             ctx.lineTo(nodes[j].x, nodes[j].y);
@@ -167,12 +187,8 @@ function DBCanvas() {
       for (const n of nodes) {
         n.pulse += n.pulseSpeed;
         const pulseFactor = 0.7 + 0.3 * Math.sin(n.pulse);
-        const alpha = 0.5 + 0.5 * pulseFactor;
 
         const grd = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r * 3);
-        // const baseColor = getNodeColor(n, alpha * 0.4);
-        // grd.addColorStop(0, getNodeColor(n, alpha * 0.9));
-        // grd.addColorStop(0.4, baseColor);
         grd.addColorStop(1, "rgba(0,0,0,0)");
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r * 3, 0, Math.PI * 2);
@@ -181,7 +197,6 @@ function DBCanvas() {
 
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r * pulseFactor, 0, Math.PI * 2);
-        // ctx.fillStyle = getNodeColor(n, alpha);
         ctx.fill();
 
         n.x += n.vx;
@@ -190,14 +205,25 @@ function DBCanvas() {
         if (n.y < -10 || n.y > H + 10) n.vy *= -1;
       }
 
-      const blendGrad = ctx.createLinearGradient(W * 0.38, 0, W * 0.62, 0);
-      blendGrad.addColorStop(0, "rgba(125,211,252,0)");
-      blendGrad.addColorStop(0.3, "rgba(125,211,252,0.045)");
-      blendGrad.addColorStop(0.5, "rgba(255,255,255,0.055)");
-      blendGrad.addColorStop(0.7, "rgba(255,91,57,0.045)");
-      blendGrad.addColorStop(1, "rgba(255,91,57,0)");
-      ctx.fillStyle = blendGrad;
-      ctx.fillRect(W * 0.38, 0, W * 0.24, H);
+      if (isMobile) {
+        const blendGrad = ctx.createLinearGradient(0, H * 0.38, 0, H * 0.62);
+        blendGrad.addColorStop(0, "rgba(125,211,252,0)");
+        blendGrad.addColorStop(0.3, "rgba(125,211,252,0.045)");
+        blendGrad.addColorStop(0.5, "rgba(255,255,255,0.055)");
+        blendGrad.addColorStop(0.7, "rgba(234,94,255,0.045)");
+        blendGrad.addColorStop(1, "rgba(234,94,255,0)");
+        ctx.fillStyle = blendGrad;
+        ctx.fillRect(0, H * 0.38, W, H * 0.24);
+      } else {
+        const blendGrad = ctx.createLinearGradient(W * 0.38, 0, W * 0.62, 0);
+        blendGrad.addColorStop(0, "rgba(125,211,252,0)");
+        blendGrad.addColorStop(0.3, "rgba(125,211,252,0.045)");
+        blendGrad.addColorStop(0.5, "rgba(255,255,255,0.055)");
+        blendGrad.addColorStop(0.7, "rgba(255,91,57,0.045)");
+        blendGrad.addColorStop(1, "rgba(255,91,57,0)");
+        ctx.fillStyle = blendGrad;
+        ctx.fillRect(W * 0.38, 0, W * 0.24, H);
+      }
 
       animRef.current = requestAnimationFrame(draw);
     }
@@ -491,18 +517,36 @@ const PLSQL_LINES = [
 
 function Divider() {
   return (
-    <div
-      className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center pointer-events-none"
-      style={{ width: "3px" }}
-    >
+    <>
+      {/* Desktop Vertical Divider */}
       <div
-        className="divider-glow w-full flex-1"
-        style={{
-          background:
-            "linear-gradient(to bottom, rgba(214,238,255,0.18) 0%, rgba(214,238,255,0.75) 30%, rgba(255,255,255,0.95) 50%, rgba(239, 197, 232, 1) 70%, rgba(198, 71, 170, 0.83) 100%)",
-        }}
-      />
-    </div>
+        className="hidden md:flex absolute top-0 bottom-0 left-1/2 -translate-x-1/2 z-20 flex-col items-center pointer-events-none"
+        style={{ width: "3px" }}
+      >
+        <div
+          className="divider-glow w-full flex-1"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(214,238,255,0.18) 0%, rgba(214,238,255,0.75) 30%, rgba(255,255,255,0.95) 50%, rgba(239, 197, 232, 1) 70%, rgba(198, 71, 170, 0.83) 100%)",
+          }}
+        />
+      </div>
+
+      {/* Mobile Horizontal Divider */}
+      <div className="flex md:hidden absolute left-0 right-0 top-1/2 -translate-y-1/2 z-20 items-center justify-center pointer-events-none px-4">
+        <div
+          className="relative w-full h-[2px]"
+          style={{
+            background:
+              "linear-gradient(to right, rgba(56,189,248,0.05) 0%, rgba(125,211,252,0.85) 30%, rgba(255,255,255,0.95) 50%, rgba(234,94,255,0.85) 70%, rgba(198,71,170,0.05) 100%)",
+            boxShadow:
+              "0 0 10px rgba(125,211,252,0.6), 0 0 20px rgba(234,94,255,0.4)",
+          }}
+        >
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_8px_#ffffff,0_0_16px_#38bdf8,0_0_16px_#ea5eff]" />
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -645,17 +689,9 @@ export default function App() {
   const sqlRef = useRef<HTMLDivElement>(null);
   const plsqlRef = useRef<HTMLDivElement>(null);
 
-  const handlePlSqlClick = () => {
-    setView((v) => (v === "plsql" ? "split" : "plsql"));
-    setPlsqlToast(true);
-    setTimeout(() => {
-      setPlsqlToast(false);
-    }, 3200);
-  };
-
   return (
     <div
-      className="relative w-full h-screen overflow-hidden select-none bg-[#050810]"
+      className="relative w-full h-screen h-[100dvh] overflow-hidden select-none bg-[#050810]"
       style={{ fontFamily: "'Outfit', var(--font-geist-sans), sans-serif" }}
     >
       <DBCanvas />
@@ -685,13 +721,13 @@ export default function App() {
         </div>
       )}
 
-      <div className="relative z-10 w-full h-full flex pb-[72px] overflow-hidden">
-        {/* ── LEFT: SQL ── */}
+      {/* Main split container: vertical column on mobile, horizontal row on desktop */}
+      <div className="relative z-10 w-full h-full flex flex-col md:flex-row pb-0 md:pb-[72px] overflow-hidden">
+        {/* ── TOP (mobile) / LEFT (desktop): SQL ── */}
         <div
           ref={sqlRef}
-          className="relative flex flex-col items-center justify-center px-6 sm:px-8 md:px-12 transition-all duration-700 ease-in-out"
+          className="relative flex-1 min-h-0 min-w-0 flex flex-col items-center justify-center px-4 sm:px-8 md:px-12 transition-all duration-700 ease-in-out"
           style={{
-            minWidth: 0,
             flex:
               view === "sql"
                 ? "1 0 100%"
@@ -717,14 +753,14 @@ export default function App() {
             className="absolute inset-0 pointer-events-none"
             style={{
               background:
-                "radial-gradient(ellipse at 30% 50%, rgba(56,189,248,0.12) 0%, transparent 70%)",
+                "radial-gradient(ellipse at 50% 50%, rgba(56,189,248,0.14) 0%, transparent 70%)",
             }}
           />
 
-          <div className="relative z-10 w-full max-w-lg space-y-6 md:space-y-8 flex flex-col items-center">
+          <div className="relative z-10 w-full max-w-lg space-y-2.5 sm:space-y-4 md:space-y-8 flex flex-col items-center py-2">
             <div className="flex justify-center">
               <span
-                className="text-xs px-4 py-1.5 rounded-full border backdrop-blur-md"
+                className="text-[10px] sm:text-xs px-3 sm:px-4 py-1 sm:py-1.5 rounded-full border backdrop-blur-md"
                 style={{
                   color: "#E2F7FF",
                   borderColor: "rgba(125,211,252,0.35)",
@@ -743,23 +779,57 @@ export default function App() {
                 text="SQL"
                 className="font-bold leading-none tracking-tight"
                 style={{
-                  fontSize: "clamp(3.5rem, 8vw, 6rem)",
+                  fontSize: "clamp(2.75rem, 6.5vh, 6rem)",
                   color: "#F3FBFF",
                   textShadow:
                     "0 0 50px rgba(125,211,252,0.5), 0 0 100px rgba(56,189,248,0.2)",
                 }}
               />
               <p
-                className="mt-3 text-sm md:text-base font-light tracking-wide max-w-sm mx-auto"
+                className="mt-1.5 sm:mt-3 text-xs sm:text-sm md:text-base font-light tracking-wide max-w-sm mx-auto"
                 style={{ color: "rgba(226,247,255,0.85)" }}
               >
                 Describe what you want.
               </p>
             </div>
+
+            {/* Mobile SQL Action Button */}
+            <div className="flex md:hidden justify-center pt-1.5 w-full">
+              <Link
+                href="/sql"
+                className="group inline-flex items-center justify-center gap-2.5 px-6 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-300 active:scale-95 text-[#F3FBFF]"
+                style={{
+                  background:
+                    "linear-gradient(135deg, rgba(14, 165, 233, 0.22) 0%, rgba(8, 18, 33, 0.9) 100%)",
+                  border: "1px solid rgba(125, 211, 252, 0.4)",
+                  boxShadow:
+                    "0 0 20px rgba(56, 189, 248, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+                  backdropFilter: "blur(16px)",
+                  fontFamily:
+                    "'JetBrains Mono', var(--font-geist-mono), monospace",
+                }}
+              >
+                <span>Start querying</span>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  className="group-hover:translate-x-1 group-active:translate-x-1 transition-transform"
+                >
+                  <path
+                    d="M7 2l5 5-5 5M2 7h10"
+                    stroke="#F3FBFF"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </Link>
+            </div>
           </div>
         </div>
 
-        {/* ── DIVIDER ── */}
+        {/* ── DIVIDER (Horizontal on Mobile, Vertical on Desktop) ── */}
         <div
           className="transition-opacity duration-700"
           style={{ opacity: view === "split" ? 1 : 0 }}
@@ -767,12 +837,11 @@ export default function App() {
           <Divider />
         </div>
 
-        {/* ── RIGHT: PL/SQL ── */}
+        {/* ── BOTTOM (mobile) / RIGHT (desktop): PL/SQL ── */}
         <div
           ref={plsqlRef}
-          className="relative flex flex-col items-center justify-center px-6 sm:px-8 md:px-12 transition-all duration-700 ease-in-out"
+          className="relative flex-1 min-h-0 min-w-0 flex flex-col items-center justify-center px-4 sm:px-8 md:px-12 transition-all duration-700 ease-in-out"
           style={{
-            minWidth: 0,
             flex:
               view === "plsql"
                 ? "1 0 100%"
@@ -798,14 +867,14 @@ export default function App() {
             className="absolute inset-0 pointer-events-none"
             style={{
               background:
-                "radial-gradient(ellipse at 70% 50%, rgba(255,91,57,0.12) 0%, transparent 70%)",
+                "radial-gradient(ellipse at 50% 50%, rgba(234,94,255,0.14) 0%, transparent 70%)",
             }}
           />
 
-          <div className="relative z-10 w-full max-w-lg space-y-6 md:space-y-8 flex flex-col items-center">
+          <div className="relative z-10 w-full max-w-lg space-y-2.5 sm:space-y-4 md:space-y-8 flex flex-col items-center py-2">
             <div className="flex justify-center">
               <span
-                className="text-xs px-4 py-1.5 rounded-full border backdrop-blur-md"
+                className="text-[10px] sm:text-xs px-3 sm:px-4 py-1 sm:py-1.5 rounded-full border backdrop-blur-md"
                 style={{
                   color: "#FFFFFF",
                   borderColor: "rgba(234,94,255,0.35)",
@@ -815,7 +884,7 @@ export default function App() {
                   letterSpacing: "0.03em",
                 }}
               >
-                Oracle's procedural extension to SQL
+                Oracle&apos;s procedural extension to SQL
               </span>
             </div>
 
@@ -824,26 +893,60 @@ export default function App() {
                 text="PL/SQL"
                 className="font-bold leading-none tracking-tight"
                 style={{
-                  fontSize: "clamp(3.5rem, 8vw, 6rem)",
+                  fontSize: "clamp(2.75rem, 6.5vh, 6rem)",
                   color: "#fce3f0",
                   textShadow:
                     "0 0 60px rgba(239, 197, 232, .5), 0 0 120px rgba(184, 64, 164, 0.5)",
                 }}
               />
               <p
-                className="mt-3 text-sm md:text-base font-light tracking-wide max-w-sm mx-auto"
+                className="mt-1.5 sm:mt-3 text-xs sm:text-sm md:text-base font-light tracking-wide max-w-sm mx-auto"
                 style={{ color: "rgba(239, 197, 232, 1)" }}
               >
                 Define how it happens.
               </p>
             </div>
+
+            {/* Mobile PL/SQL Action Button */}
+            <div className="flex md:hidden justify-center pt-1.5 w-full">
+              <Link
+                href="/plsql"
+                className="group inline-flex items-center justify-center gap-2.5 px-6 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-300 active:scale-95 text-[#fce3f0]"
+                style={{
+                  background:
+                    "linear-gradient(135deg, rgba(168, 85, 247, 0.22) 0%, rgba(40, 9, 52, 0.9) 100%)",
+                  border: "1px solid rgba(234, 94, 255, 0.4)",
+                  boxShadow:
+                    "0 0 20px rgba(210, 129, 228, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+                  backdropFilter: "blur(16px)",
+                  fontFamily:
+                    "'JetBrains Mono', var(--font-geist-mono), monospace",
+                }}
+              >
+                <span>Start scripting</span>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  className="group-hover:translate-x-1 group-active:translate-x-1 transition-transform"
+                >
+                  <path
+                    d="M7 2l5 5-5 5M2 7h10"
+                    stroke="#fce3f0"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Bottom CTA Buttons ── */}
+      {/* ── Bottom CTA Buttons (Desktop Only) ── */}
       <div
-        className="absolute bottom-0 left-0 right-0 z-30 flex"
+        className="hidden md:flex absolute bottom-0 left-0 right-0 z-30"
         style={{ height: "72px" }}
       >
         {/* SQL Button */}
